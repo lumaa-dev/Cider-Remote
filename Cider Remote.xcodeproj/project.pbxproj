@@ -1,0 +1,563 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		FA14E3582C7CA1C300904A49 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FA14E33F2C7CA1C200904A49 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FA14E3462C7CA1C200904A49;
+			remoteInfo = "Cider Remote";
+		};
+		FA14E3622C7CA1C300904A49 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FA14E33F2C7CA1C200904A49 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FA14E3462C7CA1C200904A49;
+			remoteInfo = "Cider Remote";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		FA14E3472C7CA1C200904A49 /* Cider Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cider Remote.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA14E3572C7CA1C300904A49 /* Cider RemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cider RemoteTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA14E3612C7CA1C300904A49 /* Cider RemoteUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cider RemoteUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		FA14E3492C7CA1C200904A49 /* Cider Remote */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Cider Remote";
+			sourceTree = "<group>";
+		};
+		FA14E35A2C7CA1C300904A49 /* Cider RemoteTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Cider RemoteTests";
+			sourceTree = "<group>";
+		};
+		FA14E3642C7CA1C300904A49 /* Cider RemoteUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Cider RemoteUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FA14E3442C7CA1C200904A49 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA14E3542C7CA1C300904A49 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA14E35E2C7CA1C300904A49 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FA14E33E2C7CA1C200904A49 = {
+			isa = PBXGroup;
+			children = (
+				FA14E3492C7CA1C200904A49 /* Cider Remote */,
+				FA14E35A2C7CA1C300904A49 /* Cider RemoteTests */,
+				FA14E3642C7CA1C300904A49 /* Cider RemoteUITests */,
+				FA14E3482C7CA1C200904A49 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		FA14E3482C7CA1C200904A49 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FA14E3472C7CA1C200904A49 /* Cider Remote.app */,
+				FA14E3572C7CA1C300904A49 /* Cider RemoteTests.xctest */,
+				FA14E3612C7CA1C300904A49 /* Cider RemoteUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FA14E3462C7CA1C200904A49 /* Cider Remote */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA14E36B2C7CA1C300904A49 /* Build configuration list for PBXNativeTarget "Cider Remote" */;
+			buildPhases = (
+				FA14E3432C7CA1C200904A49 /* Sources */,
+				FA14E3442C7CA1C200904A49 /* Frameworks */,
+				FA14E3452C7CA1C200904A49 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FA14E3492C7CA1C200904A49 /* Cider Remote */,
+			);
+			name = "Cider Remote";
+			packageProductDependencies = (
+			);
+			productName = "Cider Remote";
+			productReference = FA14E3472C7CA1C200904A49 /* Cider Remote.app */;
+			productType = "com.apple.product-type.application";
+		};
+		FA14E3562C7CA1C300904A49 /* Cider RemoteTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA14E36E2C7CA1C300904A49 /* Build configuration list for PBXNativeTarget "Cider RemoteTests" */;
+			buildPhases = (
+				FA14E3532C7CA1C300904A49 /* Sources */,
+				FA14E3542C7CA1C300904A49 /* Frameworks */,
+				FA14E3552C7CA1C300904A49 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FA14E3592C7CA1C300904A49 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FA14E35A2C7CA1C300904A49 /* Cider RemoteTests */,
+			);
+			name = "Cider RemoteTests";
+			packageProductDependencies = (
+			);
+			productName = "Cider RemoteTests";
+			productReference = FA14E3572C7CA1C300904A49 /* Cider RemoteTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		FA14E3602C7CA1C300904A49 /* Cider RemoteUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA14E3712C7CA1C300904A49 /* Build configuration list for PBXNativeTarget "Cider RemoteUITests" */;
+			buildPhases = (
+				FA14E35D2C7CA1C300904A49 /* Sources */,
+				FA14E35E2C7CA1C300904A49 /* Frameworks */,
+				FA14E35F2C7CA1C300904A49 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FA14E3632C7CA1C300904A49 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FA14E3642C7CA1C300904A49 /* Cider RemoteUITests */,
+			);
+			name = "Cider RemoteUITests";
+			packageProductDependencies = (
+			);
+			productName = "Cider RemoteUITests";
+			productReference = FA14E3612C7CA1C300904A49 /* Cider RemoteUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FA14E33F2C7CA1C200904A49 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					FA14E3462C7CA1C200904A49 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					FA14E3562C7CA1C300904A49 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = FA14E3462C7CA1C200904A49;
+					};
+					FA14E3602C7CA1C300904A49 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = FA14E3462C7CA1C200904A49;
+					};
+				};
+			};
+			buildConfigurationList = FA14E3422C7CA1C200904A49 /* Build configuration list for PBXProject "Cider Remote" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = FA14E33E2C7CA1C200904A49;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = FA14E3482C7CA1C200904A49 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FA14E3462C7CA1C200904A49 /* Cider Remote */,
+				FA14E3562C7CA1C300904A49 /* Cider RemoteTests */,
+				FA14E3602C7CA1C300904A49 /* Cider RemoteUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FA14E3452C7CA1C200904A49 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA14E3552C7CA1C300904A49 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA14E35F2C7CA1C300904A49 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FA14E3432C7CA1C200904A49 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA14E3532C7CA1C300904A49 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA14E35D2C7CA1C300904A49 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FA14E3592C7CA1C300904A49 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FA14E3462C7CA1C200904A49 /* Cider Remote */;
+			targetProxy = FA14E3582C7CA1C300904A49 /* PBXContainerItemProxy */;
+		};
+		FA14E3632C7CA1C300904A49 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FA14E3462C7CA1C200904A49 /* Cider Remote */;
+			targetProxy = FA14E3622C7CA1C300904A49 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		FA14E3692C7CA1C300904A49 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		FA14E36A2C7CA1C300904A49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		FA14E36C2C7CA1C300904A49 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Cider Remote/Preview Content\"";
+				DEVELOPMENT_TEAM = 8R23J2835D;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sh.cidercollective.Cider-Remote";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FA14E36D2C7CA1C300904A49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Cider Remote/Preview Content\"";
+				DEVELOPMENT_TEAM = 8R23J2835D;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sh.cidercollective.Cider-Remote";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		FA14E36F2C7CA1C300904A49 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8R23J2835D;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sh.cidercollective.Cider-RemoteTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cider Remote.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Cider Remote";
+			};
+			name = Debug;
+		};
+		FA14E3702C7CA1C300904A49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8R23J2835D;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sh.cidercollective.Cider-RemoteTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cider Remote.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Cider Remote";
+			};
+			name = Release;
+		};
+		FA14E3722C7CA1C300904A49 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8R23J2835D;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sh.cidercollective.Cider-RemoteUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Cider Remote";
+			};
+			name = Debug;
+		};
+		FA14E3732C7CA1C300904A49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8R23J2835D;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sh.cidercollective.Cider-RemoteUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Cider Remote";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FA14E3422C7CA1C200904A49 /* Build configuration list for PBXProject "Cider Remote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA14E3692C7CA1C300904A49 /* Debug */,
+				FA14E36A2C7CA1C300904A49 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA14E36B2C7CA1C300904A49 /* Build configuration list for PBXNativeTarget "Cider Remote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA14E36C2C7CA1C300904A49 /* Debug */,
+				FA14E36D2C7CA1C300904A49 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA14E36E2C7CA1C300904A49 /* Build configuration list for PBXNativeTarget "Cider RemoteTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA14E36F2C7CA1C300904A49 /* Debug */,
+				FA14E3702C7CA1C300904A49 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA14E3712C7CA1C300904A49 /* Build configuration list for PBXNativeTarget "Cider RemoteUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA14E3722C7CA1C300904A49 /* Debug */,
+				FA14E3732C7CA1C300904A49 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FA14E33F2C7CA1C200904A49 /* Project object */;
+}
