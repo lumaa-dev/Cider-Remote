@@ -1,0 +1,23 @@
+{
+  "images" : [
+    {
+      "filename" : "Finder_Icon_macOS_Big_Sur.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "Finder_Icon_macOS_Big_Sur 1.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "Finder_Icon_macOS_Big_Sur 2.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
