@@ -9,25 +9,17 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var colorScheme = ColorSchemeManager()
+    @State private var showingSettings = false
+
     var body: some View {
-        TabView {
-            DevicesView()
-                .tabItem {
-                    Text("Devices")
-                    Image(systemName: "laptopcomputer")
-                        .imageScale(.large)
-                        .foregroundStyle(.tint)
-                }
-            SettingsView()
-                .tabItem {
-                    Text("Settings")
-                    Image(systemName: "gear")
-                        .imageScale(.large)
-                        .foregroundStyle(.tint)
-                }
+        NavigationView {
+            DevicesView(showingSettings: $showingSettings)
         }
-        .accentColor(colorScheme.useAdaptiveColors ? colorScheme.primaryColor : Color(hex: "#fa2f48"))
+        .accentColor(colorScheme.primaryColor)
         .environmentObject(colorScheme)
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(showingSettings: $showingSettings)
+        }
     }
 }
 
@@ -36,45 +28,51 @@ struct DevicesView: View {
     @State private var scannedCode: String?
     @State private var isShowingScanner = false
     @State private var selectedDevice: Device?
+    @Binding var showingSettings: Bool
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                CiderHeaderView()
-                
-                List {
-                    ForEach(viewModel.devices) { device in
-                        NavigationLink(
-                            destination: MusicPlayerView(
-                                device: device,
-                                viewModel: MusicPlayerViewModel(device: device)
-                            ),
-                            tag: device,
-                            selection: $selectedDevice
-                        ) {
-                            DeviceRowView(device: device)
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                viewModel.deleteDevice(device: device)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
+        VStack(spacing: 0) {
+            CiderHeaderView()
 
-                    AddDeviceView(isShowingScanner: $isShowingScanner, scannedCode: $scannedCode, viewModel: viewModel)
-                }
-                .listStyle(InsetGroupedListStyle())
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        viewModel.startActivityChecking()
-                    }) {
-                        Image(systemName: "arrow.clockwise")
+            List {
+                ForEach(viewModel.devices) { device in
+                    NavigationLink(
+                        destination: MusicPlayerView(
+                            device: device,
+                            viewModel: MusicPlayerViewModel(device: device)
+                        ),
+                        tag: device,
+                        selection: $selectedDevice
+                    ) {
+                        DeviceRowView(device: device)
                     }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            viewModel.deleteDevice(device: device)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+
+                AddDeviceView(isShowingScanner: $isShowingScanner, scannedCode: $scannedCode, viewModel: viewModel)
+            }
+            .listStyle(InsetGroupedListStyle())
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    showingSettings = true
+                }) {
+                    Image(systemName: "gear")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    viewModel.startActivityChecking()
+                }) {
+                    Image(systemName: "arrow.clockwise")
                 }
             }
         }
@@ -240,12 +238,155 @@ struct AddDeviceView: View {
     }
 }
 
-struct SettingsView: View {
-    var body: some View {
-        Text("Settings View")
+enum Size: String, CaseIterable, Identifiable {
+    case small, medium, large
+    var id: Self { self }
+    
+    var dimension: CGFloat {
+        switch self {
+        case .small: return 40
+        case .medium: return 60  // This was 50 before, now it's 60 to match the original size
+        case .large: return 80   // Increased to take up more space
+        }
+    }
+    
+    var fontSize: CGFloat {
+        switch self {
+        case .small: return 16
+        case .medium: return 24  // Increased from 20 to 24
+        case .large: return 32   // Increased from 24 to 32
+        }
+    }
+    
+    var padding: CGFloat {
+        switch self {
+        case .small: return 8
+        case .medium: return 12
+        case .large: return 20   // Increased from 16 to 20
+        }
     }
 }
 
+struct SettingsView: View {
+    @Binding var showingSettings: Bool
+    @EnvironmentObject var colorScheme: ColorSchemeManager
+    @AppStorage("buttonSize") private var buttonSize: Size = .medium
+    @AppStorage("albumArtSize") private var albumArtSize: Size = .large
+    @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
+    @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
+    @EnvironmentObject var deviceListViewModel: DeviceListViewModel
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: Text("TestFlight")) {
+                    HStack {
+                        Image(systemName: "hammer.fill")
+                            .foregroundColor(.orange)
+                        Text("Thank you for testing!")
+                            .font(.headline)
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                Section(header: Text("Feedback")) {
+                    Button(action: reportBug) {
+                        Label("Report a Bug", systemImage: "ladybug.fill")
+                    }
+                }
+
+                Section(header: Text("Appearance")) {
+                    Toggle("Use Dynamic Colors", isOn: $useAdaptiveColors)
+                    
+                    VStack {
+                        HStack {
+                            Image(systemName: "button.horizontal.top.press.fill")
+                            Text("Button Size")
+                        }
+                        Picker("Button Size", selection: $buttonSize) {
+                            ForEach(Size.allCases) { size in
+                                Text(size.rawValue.capitalized).tag(size)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                    
+                    VStack {
+                        HStack {
+                            Image(systemName: "photo.fill")
+                            Text("Album Art Size")
+                        }
+                        Picker("Album Art Size", selection: $albumArtSize) {
+                            ForEach(Size.allCases) { size in
+                                Text(size.rawValue.capitalized).tag(size)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                }
+
+                Section(header: Text("Devices")) {
+                    Button("Reset All Devices", role: .destructive, action: resetAllDevices)
+                    
+                    VStack(alignment: .leading) {
+                        Text("Refresh Interval")
+                        Slider(value: $refreshInterval, in: 5...60, step: 5) {
+                            Text("Refresh Interval: \(Int(refreshInterval)) seconds")
+                        }
+                        Text("\(Int(refreshInterval)) seconds")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Section(header: Text("About")) {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Section {
+                    Text("© Cider Collective 2024")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+
+                    Text("Made with ❤️ by cryptofyre")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .listStyle(InsetGroupedListStyle())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Settings")
+                        .font(.headline)
+                }
+            }
+        }
+    }
+
+    private func reportBug() {
+        if let url = URL(string: "https://github.com/ciderapp/Cider-Remote/issues/new") {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func resetAllDevices() {
+       //TODO
+    }
+}
+
+struct SettingsView_Previews: PreviewProvider {
+    static var previews: some View {
+        SettingsView(showingSettings: .constant(true))
+            .environmentObject(ColorSchemeManager())
+            .environmentObject(DeviceListViewModel())
+    }
+}
 #Preview {
     ContentView()
 }

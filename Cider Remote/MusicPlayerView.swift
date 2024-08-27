@@ -11,35 +11,55 @@ import UIKit
 import SocketIO
 import Combine
 
-
 class ColorSchemeManager: ObservableObject {
     @Published var primaryColor: Color = Color(hex: "#fa2f48")
     @Published var secondaryColor: Color = .white
     @Published var backgroundColor: Color = .black.opacity(0.8)
     @Published var dominantColors: [Color] = []
-    @Published var useAdaptiveColors: Bool = false
+    @AppStorage("useAdaptiveColors") var useAdaptiveColors: Bool = true {
+        didSet {
+            applyColors()
+        }
+    }
+
+    private var lastImageColors: [Color] = []
+    private var lastImage: UIImage?
 
     func updateColors(from image: UIImage) {
+        lastImage = image
         let colors = image.dominantColors(count: 5)
-        dominantColors = colors
-        if !colors.isEmpty {
-            primaryColor = colors.first ?? Color(hex: "#fa2f48")
-            secondaryColor = colors.count > 1 ? colors[1] : .white
-            backgroundColor = (colors.count > 2 ? colors[2] : .black).opacity(0.8)
-            useAdaptiveColors = true
+        lastImageColors = colors
+        applyColors()
+    }
+
+    func applyColors() {
+        if useAdaptiveColors && !lastImageColors.isEmpty {
+            dominantColors = lastImageColors
+            primaryColor = lastImageColors.first ?? Color(hex: "#fa2f48")
+            secondaryColor = lastImageColors.count > 1 ? lastImageColors[1] : .white
+            backgroundColor = (lastImageColors.count > 2 ? lastImageColors[2] : .black).opacity(0.8)
         } else {
-            resetColors()
+            resetToDefaultColors()
         }
         updateGlobalAppearance()
     }
 
-    func resetColors() {
+    func resetToDefaultColors() {
         primaryColor = Color(hex: "#fa2f48")
         secondaryColor = .white
         backgroundColor = .black.opacity(0.8)
         dominantColors = []
-        useAdaptiveColors = false
         updateGlobalAppearance()
+    }
+
+    func reapplyAdaptiveColors() {
+        if let lastImage = lastImage {
+            updateColors(from: lastImage)
+        } else if useAdaptiveColors && !lastImageColors.isEmpty {
+            applyColors()
+        } else {
+            resetToDefaultColors()
+        }
     }
 
     private func updateGlobalAppearance() {
@@ -56,39 +76,53 @@ class ColorSchemeManager: ObservableObject {
 struct MusicPlayerView: View {
     let device: Device
     @StateObject var viewModel: MusicPlayerViewModel
-    @StateObject var colorScheme = ColorSchemeManager()
+    @State private var currentImage: UIImage?
+    @EnvironmentObject var colorScheme: ColorSchemeManager
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("buttonSize") private var buttonSize: Size = .medium
+    @AppStorage("albumArtSize") private var albumArtSize: Size = .large
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 BlurredBackgroundView(colors: colorScheme.dominantColors)
 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        if let currentTrack = viewModel.currentTrack {
-                            TrackInfoView(track: currentTrack, onImageLoaded: { image in
-                                colorScheme.updateColors(from: image)
-                                viewModel.needsColorUpdate = false
-                            })
-                            .frame(height: geometry.size.height * 0.45)
+                VStack(spacing: 20) {
+                    if let currentTrack = viewModel.currentTrack {
+                        TrackInfoView(track: currentTrack, onImageLoaded: { image in
+                            currentImage = image
+                            colorScheme.updateColors(from: image)
+                            viewModel.needsColorUpdate = false
+                        }, albumArtSize: albumArtSize, geometry: geometry)
 
-                            VStack(spacing: 20) {
-                                PlayerControlsView(viewModel: viewModel)
-                                VolumeControlView(viewModel: viewModel)
-                                AdditionalControlsView()
-                            }
-                            .padding(.horizontal)
-                        } else {
-                            Text("No track playing")
-                                .font(.title)
-                                .foregroundColor(.secondary)
+                        VStack(spacing: 15) {
+                            PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+                            VolumeControlView(viewModel: viewModel)
+                                .padding(.horizontal)
+                            AdditionalControlsView(buttonSize: buttonSize, geometry: geometry)
                         }
+                        .padding(.horizontal)
+                    } else {
+                        Text("No track playing")
+                            .font(.title)
+                            .foregroundColor(.secondary)
                     }
-                    .frame(minHeight: geometry.size.height)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.bottom, geometry.safeAreaInsets.bottom)
+                
+                VStack {
+                    if viewModel.showLibraryPopup {
+                        PopupView(message: "Added to Library", systemImage: "checkmark.circle")
+                    }
+                    if viewModel.showFavoritePopup {
+                        PopupView(message: "Added to Favorites", systemImage: "star.fill")
+                    }
+                    Spacer()
+                }
+                .animation(.easeInOut, value: viewModel.showLibraryPopup)
+                .animation(.easeInOut, value: viewModel.showFavoritePopup)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationBarTitleDisplayMode(.inline)
         .environmentObject(colorScheme)
@@ -96,14 +130,20 @@ struct MusicPlayerView: View {
             viewModel.startListening()
             viewModel.getCurrentTrack()
             viewModel.getCurrentVolume()
+            if let image = currentImage {
+                colorScheme.updateColors(from: image)
+            } else {
+                colorScheme.reapplyAdaptiveColors()
+            }
         }
         .onDisappear {
             viewModel.stopListening()
-            colorScheme.resetColors()
+            colorScheme.resetToDefaultColors()
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 viewModel.refreshCurrentTrack()
+                colorScheme.reapplyAdaptiveColors()
             }
         }
         .onChange(of: viewModel.needsColorUpdate) { needsUpdate in
@@ -116,14 +156,14 @@ struct MusicPlayerView: View {
     private func updateColors() {
         guard let artworkUrl = viewModel.currentTrack?.artwork,
               let url = URL(string: artworkUrl) else {
-            colorScheme.resetColors()
+            colorScheme.resetToDefaultColors()
             return
         }
 
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, let image = UIImage(data: data) else {
                 DispatchQueue.main.async {
-                    colorScheme.resetColors()
+                    colorScheme.resetToDefaultColors()
                 }
                 return
             }
@@ -139,7 +179,9 @@ struct MusicPlayerView: View {
 struct TrackInfoView: View {
     let track: Track
     let onImageLoaded: (UIImage) -> Void
-    
+    let albumArtSize: Size
+    let geometry: GeometryProxy
+
     var body: some View {
         VStack(spacing: 20) {
             AsyncImage(url: URL(string: track.artwork)) { phase in
@@ -164,21 +206,46 @@ struct TrackInfoView: View {
                     EmptyView()
                 }
             }
-            .frame(width: 300, height: 300)
+            .frame(width: artworkSize, height: artworkSize)
             .cornerRadius(8)
             .shadow(radius: 10)
-            
+
             VStack(spacing: 5) {
                 Text(track.title)
-                    .font(.title2)
+                    .font(.system(size: titleFontSize))
                     .fontWeight(.bold)
                     .lineLimit(1)
-                
+
                 Text(track.artist)
-                    .font(.title3)
+                    .font(.system(size: artistFontSize))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
+            .frame(width: geometry.size.width * 0.9)  // Limit text width to prevent bleeding
+        }
+    }
+
+    private var artworkSize: CGFloat {
+        switch albumArtSize {
+        case .small: return min(geometry.size.width * 0.6, 200)
+        case .medium: return min(geometry.size.width * 0.7, 300)
+        case .large: return min(geometry.size.width * 0.8, 400)
+        }
+    }
+
+    private var titleFontSize: CGFloat {
+        switch albumArtSize {
+        case .small: return 20
+        case .medium: return 24
+        case .large: return 28
+        }
+    }
+
+    private var artistFontSize: CGFloat {
+        switch albumArtSize {
+        case .small: return 16
+        case .medium: return 18
+        case .large: return 20
         }
     }
 }
@@ -188,62 +255,76 @@ struct PlayerControlsView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @State private var isDragging = false
     @Environment(\.colorScheme) var systemColorScheme
+    let buttonSize: Size
+    let geometry: GeometryProxy
 
     var body: some View {
         VStack(spacing: 10) {
-            CustomSlider(value: $viewModel.currentTime,
-                         bounds: 0...viewModel.duration,
-                         isDragging: $isDragging,
-                         onEditingChanged: { editing in
-                             if !editing {
-                                 viewModel.seekToTime()
-                             }
-                         })
-                .accentColor(colorScheme.primaryColor)
+            // Playback bar
+            VStack(spacing: 3) {
+                CustomSlider(value: $viewModel.currentTime,
+                             bounds: 0...viewModel.duration,
+                             isDragging: $isDragging,
+                             onEditingChanged: { editing in
+                                 if !editing {
+                                     viewModel.seekToTime()
+                                 }
+                             })
+                    .accentColor(colorScheme.primaryColor)
 
-            HStack {
-                Text(formatTime(viewModel.currentTime))
-                Spacer()
-                Text(formatTime(viewModel.duration))
+                // Timestamps
+                HStack {
+                    Text(formatTime(viewModel.currentTime))
+                    Spacer()
+                    Text(formatTime(viewModel.duration))
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
-            .font(.caption)
-            .foregroundColor(colorScheme.secondaryColor)
+            .frame(width: min(geometry.size.width * 0.9, 500))  // Limit width of playback bar
 
             HStack {
                 Button(action: viewModel.toggleLike) {
                     Image(systemName: viewModel.isLiked ? "star.fill" : "star")
                         .foregroundColor(viewModel.isLiked ? Color(hex: "#fa2f48") : lightDarkColor)
-                        .frame(width: 44, height: 44) // Expanded tappable area
+                        .frame(width: buttonSize.dimension, height: buttonSize.dimension)
                 }
                 .buttonStyle(SpringyButtonStyle())
 
                 Spacer()
 
-                HStack(spacing: 20) {
+                HStack(spacing: 0) {
+                    Spacer().frame(width: buttonSpacing)
                     Button(action: viewModel.previousTrack) {
                         Image(systemName: "backward.fill")
-                            .font(.system(size: 30))
+                            .font(.system(size: buttonSize.fontSize * 1.2))
                             .foregroundColor(lightDarkColor)
-                            .frame(width: 60, height: 60) // Expanded tappable area
+                            .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
                     }
                     .buttonStyle(SpringyButtonStyle())
+
+                    Spacer().frame(width: buttonSpacing)
 
                     Button(action: viewModel.togglePlayPause) {
                         Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 80))
+                            .font(.system(size: buttonSize.fontSize * 2.5))
                             .foregroundColor(lightDarkColor)
-                            .frame(width: 100, height: 100) // Expanded tappable area
+                            .frame(width: buttonSize.dimension * 1.8, height: buttonSize.dimension * 1.8)
                     }
                     .buttonStyle(SpringyButtonStyle())
 
+                    Spacer().frame(width: buttonSpacing)
+
                     Button(action: viewModel.nextTrack) {
                         Image(systemName: "forward.fill")
-                            .font(.system(size: 30))
+                            .font(.system(size: buttonSize.fontSize * 1.2))
                             .foregroundColor(lightDarkColor)
-                            .frame(width: 60, height: 60) // Expanded tappable area
+                            .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
                     }
                     .buttonStyle(SpringyButtonStyle())
+                    Spacer().frame(width: buttonSpacing)
                 }
+                .frame(width: min(geometry.size.width * 0.6, 300))  // Limit width of main controls
 
                 Spacer()
 
@@ -268,25 +349,34 @@ struct PlayerControlsView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .foregroundColor(lightDarkColor)
-                        .frame(width: 44, height: 44) // Expanded tappable area
+                        .frame(width: buttonSize.dimension, height: buttonSize.dimension)
                 }
                 .buttonStyle(SpringyButtonStyle())
             }
+            .frame(width: min(geometry.size.width * 0.95, 500))
             .font(.title2)
+        }
+    }
+
+    private var buttonSpacing: CGFloat {
+        switch buttonSize {
+        case .small: return 8
+        case .medium: return 12
+        case .large: return 2  // Reduced from previous value
         }
     }
 
     private var adaptiveColor: Color {
         let brightness = colorScheme.primaryColor.brightness
         let systemIsDark = systemColorScheme == .dark
-        
+
         if systemIsDark {
             return brightness < 0.5 ? .white : .black
         } else {
             return brightness > 0.6 ? .black : .white
         }
     }
-    
+
     private var lightDarkColor: Color {
         systemColorScheme == .dark ? .white : .black
     }
@@ -310,9 +400,9 @@ struct ResponsiveButtonStyle: ButtonStyle {
 struct VolumeControlView: View {
     @ObservedObject var viewModel: MusicPlayerViewModel
     @State private var isDragging = false
-    
+
     var body: some View {
-        HStack(spacing: 12) {  // Keep the spacing as is
+        HStack(spacing: 12) {
             Image(systemName: "speaker.fill")
                 .foregroundColor(.secondary)
             CustomSlider(value: $viewModel.volume,
@@ -327,6 +417,7 @@ struct VolumeControlView: View {
             Image(systemName: "speaker.wave.3.fill")
                 .foregroundColor(.secondary)
         }
+        .frame(height: 30)  // Set a fixed height for the volume control
     }
 }
 
@@ -337,21 +428,21 @@ struct CustomSlider: View {
     let bounds: ClosedRange<Double>
     @Binding var isDragging: Bool
     let onEditingChanged: (Bool) -> Void
-    
+
     @State private var lastDragValue: Double?
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
                     .fill(Color(UIColor.systemGray5))
-                    .frame(height: 8)  // Increased height from 4 to 8
-                
+                    .frame(height: 8)
+
                 Rectangle()
                     .fill(colorScheme.secondaryColor)
-                    .frame(width: CGFloat((value - bounds.lowerBound) / (bounds.upperBound - bounds.lowerBound)) * geometry.size.width, height: 8)  // Increased height from 4 to 8
+                    .frame(width: CGFloat((value - bounds.lowerBound) / (bounds.upperBound - bounds.lowerBound)) * geometry.size.width, height: 8)
             }
-            .cornerRadius(4)  // Increased corner radius from 2 to 4
+            .cornerRadius(4)
             .frame(height: geometry.size.height)
             .contentShape(Rectangle())
             .gesture(
@@ -360,7 +451,7 @@ struct CustomSlider: View {
                         isDragging = true
                         let newValue = bounds.lowerBound + (bounds.upperBound - bounds.lowerBound) * Double(gestureValue.location.x / geometry.size.width)
                         value = max(bounds.lowerBound, min(bounds.upperBound, newValue))
-                        
+
                         // Haptic feedback
                         if let last = lastDragValue, abs(newValue - last) > (bounds.upperBound - bounds.lowerBound) / 100 {
                             let impact = UIImpactFeedbackGenerator(style: .light)
@@ -377,7 +468,7 @@ struct CustomSlider: View {
                     }
             )
         }
-        .frame(height: 44)  // Increased height from 30 to 44 to accommodate taller bars
+        .frame(height: 44)
     }
 }
 
@@ -400,41 +491,126 @@ struct MenuOptionsView: View {
     }
 }
 
+struct PopupView: View {
+    let message: String
+    let systemImage: String
+
+    @State private var isShowing = false
+
+    var body: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Image(systemName: systemImage)
+                Text(message)
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            .foregroundColor(.primary)
+            .cornerRadius(15)
+            .shadow(radius: 5)
+            .padding(.bottom, 70)
+            .opacity(isShowing ? 1 : 0)
+            .offset(y: isShowing ? 0 : 20)
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .zIndex(1) // Ensure the popup appears above other content
+        .onAppear {
+            withAnimation(.spring()) {
+                isShowing = true
+            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+    }
+}
+
 struct LargeButton: View {
     let title: String
     let systemImage: String
     let action: () -> Void
-    
+    let size: Size
+    let geometry: GeometryProxy
+
     var body: some View {
         Button(action: action) {
             HStack {
                 Image(systemName: systemImage)
                 Text(title)
             }
-            .font(.headline)
+            .font(.system(size: adjustedFontSize))
             .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .frame(height: adjustedHeight)
             .background(Color.secondary.opacity(0.2))
             .cornerRadius(8)
+        }
+    }
+
+    private var adjustedFontSize: CGFloat {
+        min(size.fontSize * 0.8, 22)  // Reduce font size and set a maximum
+    }
+
+    private var adjustedHeight: CGFloat {
+        min(size.dimension * 1.2, 60)  // Adjust height and set a maximum
+    }
+}
+
+struct SmallButton: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+    let size: Size
+    let geometry: GeometryProxy
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: systemImage)
+                Text(title)
+            }
+            .font(.system(size: adjustedFontSize))
+            .foregroundColor(.primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: adjustedHeight)
+            .background(Color.secondary.opacity(0.2))
+            .cornerRadius(8)
+        }
+    }
+
+    private var adjustedFontSize: CGFloat {
+        switch size {
+        case .small: return 12
+        case .medium: return 14
+        case .large: return 16
+        }
+    }
+
+    private var adjustedHeight: CGFloat {
+        switch size {
+        case .small: return 30
+        case .medium: return 34
+        case .large: return 38
         }
     }
 }
 
 struct AdditionalControlsView: View {
+    let buttonSize: Size
+    let geometry: GeometryProxy
+
     var body: some View {
         HStack(spacing: 15) {
-            LargeButton(title: "Lyrics", systemImage: "quote.bubble", action: {
+            SmallButton(title: "Lyrics", systemImage: "quote.bubble", action: {
                 // Add action for showing lyrics
-            })
-            
-            LargeButton(title: "Queue", systemImage: "list.bullet", action: {
+            }, size: buttonSize, geometry: geometry)
+
+            SmallButton(title: "Queue", systemImage: "list.bullet", action: {
                 // Add action for showing queue
-            })
+            }, size: buttonSize, geometry: geometry)
         }
+        .frame(width: min(geometry.size.width * 0.95, 500))  // Limit width and set a maximum
     }
 }
-
 
 extension Color {
     init(hex: String) {
@@ -572,6 +748,8 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var isLiked: Bool = false
     @Published var isInLibrary: Bool = false
     @Published var needsColorUpdate: Bool = false
+    @Published var showLibraryPopup = false
+    @Published var showFavoritePopup = false
 
     private var manager: SocketManager?
     private var socket: SocketIOClient?
@@ -608,6 +786,10 @@ class MusicPlayerViewModel: ObservableObject {
             
             DispatchQueue.main.async {
                 switch type {
+                case "playbackStatus.nowPlayingStatusDidChange":
+                    if let info = playbackData["data"] as? [String: Any] {
+                        self.setAdaptiveData(info)
+                    }
                 case "playbackStatus.nowPlayingItemDidChange":
                     if let info = playbackData["data"] as? [String: Any] {
                         self.updateTrackInfo(info)
@@ -657,7 +839,7 @@ class MusicPlayerViewModel: ObservableObject {
                 print("Current track data received: \(data)")
                 if let info = data["info"] as? [String: Any] {
                     DispatchQueue.main.async {
-                        self?.updateTrackInfo(info)
+                        self?.updateTrackInfo(info, alt:true)
                     }
                 } else {
                     print("Error: 'info' key not found in data")
@@ -668,7 +850,7 @@ class MusicPlayerViewModel: ObservableObject {
         }
     }
     
-    private func updateTrackInfo(_ info: [String: Any]) {
+    private func updateTrackInfo(_ info: [String: Any], alt: Bool = false) {
         print("Updating track info: \(info)")
         let title = info["name"] as? String ?? ""
         let artist = info["artistName"] as? String ?? ""
@@ -693,9 +875,11 @@ class MusicPlayerViewModel: ObservableObject {
                 self.needsColorUpdate = true
             }
         }
-
-        self.isLiked = info["inFavorites"] as? Bool ?? false
-        self.isInLibrary = info["inLibrary"] as? Bool ?? false
+        
+        if alt {
+            self.isLiked = info["inFavorites"] as? Bool ?? false
+            self.isInLibrary = info["inLibrary"] as? Bool ?? false
+        }
         self.duration = duration / 1000
 
         if let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
@@ -774,6 +958,10 @@ class MusicPlayerViewModel: ObservableObject {
             if case .success = result {
                 DispatchQueue.main.async {
                     self?.isLiked.toggle()
+                    self?.showFavoritePopup = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self?.showFavoritePopup = false
+                    }
                 }
             }
         }
@@ -786,6 +974,10 @@ class MusicPlayerViewModel: ObservableObject {
                 if case .success = result {
                     DispatchQueue.main.async {
                         self?.isInLibrary = true
+                        self?.showLibraryPopup = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            self?.showLibraryPopup = false
+                        }
                     }
                 }
             }

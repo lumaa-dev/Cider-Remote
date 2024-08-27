@@ -274,6 +274,7 @@ class DeviceListViewModel: ObservableObject {
     @AppStorage("savedDevices") private var savedDevicesData: Data = Data()
     @Published var devices: [Device] = []
     @Published var isRefreshing: Bool = false
+    @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
 
     private var activityCheckTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
