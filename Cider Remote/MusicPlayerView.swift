@@ -75,65 +75,84 @@ class ColorSchemeManager: ObservableObject {
 
 struct MusicPlayerView: View {
     let device: Device
-    @StateObject var viewModel: MusicPlayerViewModel
+    @StateObject private var viewModel: MusicPlayerViewModel
     @State private var currentImage: UIImage?
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("buttonSize") private var buttonSize: Size = .medium
     @AppStorage("albumArtSize") private var albumArtSize: Size = .large
 
+    @State private var showingLyrics = false
+    @State private var showingQueue = false
+    @State private var isLoading = true
+
+    init(device: Device) {
+        self.device = device
+        _viewModel = StateObject(wrappedValue: MusicPlayerViewModel(device: device))
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 BlurredBackgroundView(colors: colorScheme.dominantColors)
 
-                VStack(spacing: 20) {
-                    if let currentTrack = viewModel.currentTrack {
-                        TrackInfoView(track: currentTrack, onImageLoaded: { image in
-                            currentImage = image
-                            colorScheme.updateColors(from: image)
-                            viewModel.needsColorUpdate = false
-                        }, albumArtSize: albumArtSize, geometry: geometry)
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .progressViewStyle(CircularProgressViewStyle(tint: colorScheme.primaryColor))
+                } else {
+                    VStack(spacing: 20) {
+                        if let currentTrack = viewModel.currentTrack {
+                            TrackInfoView(track: currentTrack, onImageLoaded: { image in
+                                currentImage = image
+                                colorScheme.updateColors(from: image)
+                                viewModel.needsColorUpdate = false
+                            }, albumArtSize: albumArtSize, geometry: geometry)
 
-                        VStack(spacing: 15) {
-                            PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
-                            VolumeControlView(viewModel: viewModel)
-                                .padding(.horizontal)
-                            AdditionalControlsView(buttonSize: buttonSize, geometry: geometry)
+                            VStack(spacing: 15) {
+                                PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+                                VolumeControlView(viewModel: viewModel)
+                                    .padding(.horizontal)
+                                AdditionalControlsView(
+                                    buttonSize: buttonSize,
+                                    geometry: geometry,
+                                    showLyrics: $showingLyrics,
+                                    showQueue: $showingQueue
+                                )
+                            }
+                            .padding(.horizontal)
+                        } else {
+                            Text("No track playing")
+                                .font(.title)
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.horizontal)
-                    } else {
-                        Text("No track playing")
-                            .font(.title)
-                            .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.bottom, geometry.safeAreaInsets.bottom)
-                
-                VStack {
-                    if viewModel.showLibraryPopup {
-                        PopupView(message: "Added to Library", systemImage: "checkmark.circle")
-                    }
-                    if viewModel.showFavoritePopup {
-                        PopupView(message: "Added to Favorites", systemImage: "star.fill")
-                    }
-                    Spacer()
+
+                if showingLyrics {
+                    LyricsView(isShowing: $showingLyrics, currentTrack: viewModel.currentTrack!)
+                        .transition(.move(edge: .bottom))
                 }
-                .animation(.easeInOut, value: viewModel.showLibraryPopup)
-                .animation(.easeInOut, value: viewModel.showFavoritePopup)
+
+                if showingQueue {
+                    QueueView(isShowing: $showingQueue, viewModel: viewModel)
+                        .transition(.move(edge: .bottom))
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .environmentObject(colorScheme)
         .onAppear {
             viewModel.startListening()
-            viewModel.getCurrentTrack()
-            viewModel.getCurrentVolume()
-            if let image = currentImage {
-                colorScheme.updateColors(from: image)
-            } else {
-                colorScheme.reapplyAdaptiveColors()
+            Task {
+                await viewModel.initializePlayer()
+                await MainActor.run {
+                    withAnimation {
+                        isLoading = false
+                    }
+                }
             }
         }
         .onDisappear {
@@ -142,7 +161,9 @@ struct MusicPlayerView: View {
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
-                viewModel.refreshCurrentTrack()
+                Task {
+                    viewModel.refreshCurrentTrack()
+                }
                 colorScheme.reapplyAdaptiveColors()
             }
         }
@@ -160,19 +181,246 @@ struct MusicPlayerView: View {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, let image = UIImage(data: data) else {
-                DispatchQueue.main.async {
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let image = UIImage(data: data) {
+                    await MainActor.run {
+                        colorScheme.updateColors(from: image)
+                        viewModel.needsColorUpdate = false
+                    }
+                }
+            } catch {
+                print("Error loading artwork: \(error)")
+                await MainActor.run {
                     colorScheme.resetToDefaultColors()
                 }
-                return
             }
+        }
+    }
+}
 
-            DispatchQueue.main.async {
-                colorScheme.updateColors(from: image)
-                viewModel.needsColorUpdate = false
+extension MusicPlayerViewModel {
+    func initializePlayer() async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.getCurrentTrack() }
+            group.addTask { await self.getCurrentVolume() }
+            group.addTask { await self.fetchQueueItems() }
+        }
+    }
+}
+
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
+struct LyricsView: View {
+    @Binding var isShowing: Bool
+    let currentTrack: Track
+    @State private var currentLyricIndex: Int = 0
+    @State private var lyrics: [LyricLine] = []
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                BlurView(style: .systemMaterial)
+                    .edgesIgnoringSafeArea(.all)
+
+                VStack(spacing: 0) {
+                    // Header
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(currentTrack.title)
+                                .font(.system(size: 22, weight: .bold))
+                            Text(currentTrack.artist)
+                                .font(.system(size: 18))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                isShowing = false
+                            }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: 28))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 10)
+
+                    // Current lyric line
+                    if currentLyricIndex < lyrics.count {
+                        Text(lyrics[currentLyricIndex].text)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 16)
+                            .background(Color.secondary.opacity(0.2))
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    // Lyrics scrollview
+                    ScrollViewReader { scrollView in
+                        ScrollView {
+                            VStack(alignment: .center, spacing: 24) {
+                                ForEach(lyrics) { line in
+                                    Text(line.text)
+                                        .font(.system(size: 18, weight: line.isCurrent ? .semibold : .regular))
+                                        .foregroundColor(line.isCurrent ? .primary : .secondary)
+                                        .id(line.id)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 4)
+                                }
+                            }
+                            .padding(.vertical, 20)
+                        }
+                        .onChange(of: currentLyricIndex) { _ in
+                            withAnimation {
+                                scrollView.scrollTo(lyrics[currentLyricIndex].id, anchor: .top)
+                            }
+                        }
+                    }
+                }
+                .frame(width: geometry.size.width)
             }
-        }.resume()
+        }
+        .foregroundColor(.primary)
+        .onAppear {
+            // Simulated lyrics data
+            lyrics = [
+                LyricLine(text: "When the night has come", timestamp: 0),
+                LyricLine(text: "And the land is dark", timestamp: 4),
+                LyricLine(text: "And the moon is the only light we'll see", timestamp: 8),
+                LyricLine(text: "No, I won't be afraid", timestamp: 12),
+                LyricLine(text: "Oh, I won't be afraid", timestamp: 16),
+                LyricLine(text: "Just as long as you stand, stand by me", timestamp: 20),
+            ]
+
+            // Simulate lyric timing
+            Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    currentLyricIndex = (currentLyricIndex + 1) % lyrics.count
+                    lyrics = lyrics.enumerated().map { index, line in
+                        LyricLine(text: line.text, timestamp: line.timestamp, isCurrent: index == currentLyricIndex)
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct LyricLine: Identifiable {
+    let id = UUID()
+    let text: String
+    let timestamp: Double
+    var isCurrent: Bool = false
+}
+
+struct QueueView: View {
+    @Binding var isShowing: Bool
+    @ObservedObject var viewModel: MusicPlayerViewModel
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        ZStack {
+            // Blurred background
+            BlurView(style: .systemMaterial)
+                .edgesIgnoringSafeArea(.all)
+
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Text("Up Next")
+                        .font(.system(size: 22, weight: .bold))
+                    Spacer()
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            isShowing = false
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 28))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 10)
+
+                // Queue list
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.queueItems, id: \.id) { track in
+                            HStack(spacing: 12) {
+                                AsyncImage(url: URL(string: track.artwork)) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        Color.gray.opacity(0.3)
+                                    case .success(let image):
+                                        image.resizable()
+                                    case .failure:
+                                        Image(systemName: "music.note")
+                                            .foregroundColor(.gray)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                                .frame(width: 50, height: 50)
+                                .cornerRadius(4)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(track.title)
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text(track.artist)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Text(formatDuration(track.duration))
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                    .padding(.vertical, 16)
+                }
+            }
+        }
+        .foregroundColor(.primary)
+    }
+
+    private func formatDuration(_ duration: Double) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+struct BlurView: UIViewRepresentable {
+    let style: UIBlurEffect.Style
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        return UIVisualEffectView(effect: UIBlurEffect(style: style))
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: style)
     }
 }
 
@@ -267,7 +515,9 @@ struct PlayerControlsView: View {
                              isDragging: $isDragging,
                              onEditingChanged: { editing in
                                  if !editing {
-                                     viewModel.seekToTime()
+                                     Task {
+                                         await viewModel.seekToTime()
+                                     }
                                  }
                              })
                     .accentColor(colorScheme.primaryColor)
@@ -283,8 +533,12 @@ struct PlayerControlsView: View {
             }
             .frame(width: min(geometry.size.width * 0.9, 500))  // Limit width of playback bar
 
-            HStack {
-                Button(action: viewModel.toggleLike) {
+            HStack(spacing: 0) {
+                Button(action: {
+                    Task {
+                        await viewModel.toggleLike()
+                    }
+                }) {
                     Image(systemName: viewModel.isLiked ? "star.fill" : "star")
                         .foregroundColor(viewModel.isLiked ? Color(hex: "#fa2f48") : lightDarkColor)
                         .frame(width: buttonSize.dimension, height: buttonSize.dimension)
@@ -293,9 +547,12 @@ struct PlayerControlsView: View {
 
                 Spacer()
 
-                HStack(spacing: 0) {
-                    Spacer().frame(width: buttonSpacing)
-                    Button(action: viewModel.previousTrack) {
+                HStack(alignment: .center, spacing: calculateButtonSpacing()) {
+                    Button(action: {
+                        Task {
+                            await viewModel.previousTrack()
+                        }
+                    }) {
                         Image(systemName: "backward.fill")
                             .font(.system(size: buttonSize.fontSize * 1.2))
                             .foregroundColor(lightDarkColor)
@@ -303,9 +560,11 @@ struct PlayerControlsView: View {
                     }
                     .buttonStyle(SpringyButtonStyle())
 
-                    Spacer().frame(width: buttonSpacing)
-
-                    Button(action: viewModel.togglePlayPause) {
+                    Button(action: {
+                        Task {
+                            await viewModel.togglePlayPause()
+                        }
+                    }) {
                         Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: buttonSize.fontSize * 2.5))
                             .foregroundColor(lightDarkColor)
@@ -313,16 +572,17 @@ struct PlayerControlsView: View {
                     }
                     .buttonStyle(SpringyButtonStyle())
 
-                    Spacer().frame(width: buttonSpacing)
-
-                    Button(action: viewModel.nextTrack) {
+                    Button(action: {
+                        Task {
+                            await viewModel.nextTrack()
+                        }
+                    }) {
                         Image(systemName: "forward.fill")
                             .font(.system(size: buttonSize.fontSize * 1.2))
                             .foregroundColor(lightDarkColor)
                             .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
                     }
                     .buttonStyle(SpringyButtonStyle())
-                    Spacer().frame(width: buttonSpacing)
                 }
                 .frame(width: min(geometry.size.width * 0.6, 300))  // Limit width of main controls
 
@@ -330,7 +590,9 @@ struct PlayerControlsView: View {
 
                 Menu {
                     Button(action: {
-                        viewModel.toggleAddToLibrary()
+                        Task {
+                            await viewModel.toggleAddToLibrary()
+                        }
                     }) {
                         Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
                     }
@@ -358,23 +620,11 @@ struct PlayerControlsView: View {
         }
     }
 
-    private var buttonSpacing: CGFloat {
-        switch buttonSize {
-        case .small: return 8
-        case .medium: return 12
-        case .large: return 2  // Reduced from previous value
-        }
-    }
-
-    private var adaptiveColor: Color {
-        let brightness = colorScheme.primaryColor.brightness
-        let systemIsDark = systemColorScheme == .dark
-
-        if systemIsDark {
-            return brightness < 0.5 ? .white : .black
-        } else {
-            return brightness > 0.6 ? .black : .white
-        }
+    private func calculateButtonSpacing() -> CGFloat {
+        let totalWidth = min(geometry.size.width * 0.6, 300)
+        let buttonWidths = buttonSize.dimension * 1.2 * 2 + buttonSize.dimension * 1.8
+        let remainingSpace = totalWidth - buttonWidths
+        return remainingSpace / 4 // Divide by 4 to create 3 equal spaces between buttons
     }
 
     private var lightDarkColor: Color {
@@ -410,7 +660,9 @@ struct VolumeControlView: View {
                          isDragging: $isDragging,
                          onEditingChanged: { editing in
                              if !editing {
-                                 viewModel.adjustVolume()
+                                 Task {
+                                     viewModel.adjustVolume()
+                                 }
                              }
                          })
                 .accentColor(.red)
@@ -475,16 +727,18 @@ struct CustomSlider: View {
 struct MenuOptionsView: View {
     @ObservedObject var viewModel: MusicPlayerViewModel
     @Environment(\.presentationMode) var presentationMode
-    
+
     var body: some View {
         List {
             Button(action: {
-                viewModel.toggleAddToLibrary()
-                presentationMode.wrappedValue.dismiss()
+                Task {
+                    await viewModel.toggleAddToLibrary()
+                    presentationMode.wrappedValue.dismiss()
+                }
             }) {
                 Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
             }
-            
+
             // Add more menu options as needed
         }
         .listStyle(PlainListStyle())
@@ -597,18 +851,40 @@ struct SmallButton: View {
 struct AdditionalControlsView: View {
     let buttonSize: Size
     let geometry: GeometryProxy
+    @Environment(\.colorScheme) var colorScheme
+    @Binding var showLyrics: Bool
+    @Binding var showQueue: Bool
 
     var body: some View {
-        HStack(spacing: 15) {
-            SmallButton(title: "Lyrics", systemImage: "quote.bubble", action: {
-                // Add action for showing lyrics
-            }, size: buttonSize, geometry: geometry)
-
-            SmallButton(title: "Queue", systemImage: "list.bullet", action: {
-                // Add action for showing queue
-            }, size: buttonSize, geometry: geometry)
+        HStack(spacing: 30) {
+            Spacer()
+            
+            Button(action: {
+                withAnimation(.spring()) {
+                    showLyrics.toggle()
+                }
+            }) {
+                Image(systemName: "quote.bubble")
+                    .font(.system(size: 20))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            Button(action: {
+                withAnimation(.spring()) {
+                    showQueue.toggle()
+                }
+            }) {
+                Image(systemName: "list.bullet")
+                    .font(.system(size: 20))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            Spacer()
         }
-        .frame(width: min(geometry.size.width * 0.95, 500))  // Limit width and set a maximum
+        .frame(height: 44)
+        .padding(.bottom, 10)
     }
 }
 
@@ -738,8 +1014,17 @@ struct SpringyButtonStyle: ButtonStyle {
     }
 }
 
+enum NetworkError: Error {
+    case invalidURL
+    case invalidResponse
+    case decodingError
+    case serverError(String)
+}
+
+@MainActor
 class MusicPlayerViewModel: ObservableObject {
     let device: Device
+    @Published var queueItems: [Track] = []
     @Published var currentTrack: Track?
     @Published var isPlaying: Bool = false
     @Published var currentTime: Double = 0
@@ -750,15 +1035,32 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var needsColorUpdate: Bool = false
     @Published var showLibraryPopup = false
     @Published var showFavoritePopup = false
+    @Published var errorMessage: String?
 
     private var manager: SocketManager?
     private var socket: SocketIOClient?
     private var cancellables = Set<AnyCancellable>()
 
+    private var volumeDebouncer: Debouncer?
+    private var seekDebouncer: Debouncer?
+    private var imageCache = NSCache<NSString, UIImage>()
+
     init(device: Device) {
         self.device = device
+        self.volumeDebouncer = Debouncer(delay: 0.3) { [weak self] in
+            guard let self = self else { return }
+            Task {
+                await self.adjustVolumeDebounced()
+            }
+        }
+        self.seekDebouncer = Debouncer(delay: 0.3) { [weak self] in
+            guard let self = self else { return }
+            Task {
+                await self.seekToTimeDebounced()
+            }
+        }
     }
-    
+
     func startListening() {
         print("Attempting to connect to socket")
         manager = SocketManager(socketURL: URL(string: "http://\(device.host):10767")!, config: [.log(true), .compress])
@@ -771,7 +1073,10 @@ class MusicPlayerViewModel: ObservableObject {
     private func setupSocketEventHandlers() {
         socket?.on(clientEvent: .connect) { [weak self] data, ack in
             print("Socket connected")
-            self?.getCurrentTrack()
+            
+            Task {
+                await self?.getCurrentTrack()
+            }
         }
 
         socket?.on("API:Playback") { [weak self] data, ack in
@@ -816,12 +1121,13 @@ class MusicPlayerViewModel: ObservableObject {
         print("Disconnecting socket")
         socket?.disconnect()
     }
-    
+
     func refreshCurrentTrack() {
-        print("Refreshing current track")
-        getCurrentTrack()
-        getCurrentVolume()
-        reconnectSocketIfNeeded()
+        Task {
+            await getCurrentTrack()
+            await getCurrentVolume()
+            reconnectSocketIfNeeded()
+        }
     }
 
     private func reconnectSocketIfNeeded() {
@@ -830,26 +1136,53 @@ class MusicPlayerViewModel: ObservableObject {
             socket?.connect()
         }
     }
-    
-    func getCurrentTrack() {
+
+    func fetchQueueItems() async {
+        // Implement this method to fetch the queue items from the API
+        // For now, we'll use dummy data
+        queueItems = [
+            Track(id: "1", title: "Stand By Me", artist: "Ben E. King", album: "Don't Play That Song", artwork: "https://example.com/artwork1.jpg", duration: 180),
+            Track(id: "2", title: "Imagine", artist: "John Lennon", album: "Imagine", artwork: "https://example.com/artwork2.jpg", duration: 210),
+            Track(id: "3", title: "What's Going On", artist: "Marvin Gaye", album: "What's Going On", artwork: "https://example.com/artwork3.jpg", duration: 195),
+        ]
+    }
+
+    func getCurrentTrack() async {
         print("Fetching current track")
-        sendRequest(endpoint: "now-playing", method: "GET") { [weak self] result in
-            switch result {
-            case .success(let data):
-                print("Current track data received: \(data)")
-                if let info = data["info"] as? [String: Any] {
-                    DispatchQueue.main.async {
-                        self?.updateTrackInfo(info, alt:true)
-                    }
-                } else {
-                    print("Error: 'info' key not found in data")
-                }
-            case .failure(let error):
-                print("Error fetching current track: \(error)")
+        do {
+            let data = try await sendRequest(endpoint: "now-playing", method: "GET")
+            if let info = data["info"] as? [String: Any] {
+                updateTrackInfo(info, alt: true)
+            } else {
+                throw NetworkError.decodingError
             }
+        } catch {
+            handleError(error)
         }
     }
     
+    private func setPlaybackStatus(_ info: [String: Any]) {
+        print("Setting playback status: \(info)")
+        if let state = info["state"] as? String {
+            self.isPlaying = (state == "playing")
+        }
+    }
+    
+    private func setAdaptiveData(_ info: [String: Any]) {
+        print("Setting adaptive data: \(info)")
+        DispatchQueue.main.async {
+            self.isLiked = info["inFavorites"] as? Bool ?? false
+            self.isInLibrary = info["inLibrary"] as? Bool ?? false
+            
+            if let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
+                self.currentTime = currentPlaybackTime
+            }
+            if let durationInMillis = info["durationInMillis"] as? Double {
+                self.duration = durationInMillis / 1000
+            }
+        }
+    }
+
     private func updateTrackInfo(_ info: [String: Any], alt: Bool = false) {
         print("Updating track info: \(info)")
         let title = info["name"] as? String ?? ""
@@ -875,7 +1208,7 @@ class MusicPlayerViewModel: ObservableObject {
                 self.needsColorUpdate = true
             }
         }
-        
+
         if alt {
             self.isLiked = info["inFavorites"] as? Bool ?? false
             self.isInLibrary = info["inLibrary"] as? Bool ?? false
@@ -886,179 +1219,154 @@ class MusicPlayerViewModel: ObservableObject {
             self.currentTime = currentPlaybackTime
         }
 
-        self.isPlaying = false;
+        self.isPlaying = false
 
         print("Updated currentTrack: \(String(describing: self.currentTrack))")
         print("isPlaying: \(self.isPlaying)")
     }
-    
-    func getCurrentVolume() {
+
+    func getCurrentVolume() async {
         print("Fetching current volume")
-        sendRequest(endpoint: "volume", method: "GET") { [weak self] result in
-            switch result {
-            case .success(let data):
-                if let volume = data["volume"] as? Double {
-                    DispatchQueue.main.async {
-                        self?.volume = volume
-                    }
-                    print("Current volume: \(volume)")
-                } else {
-                    print("Error: 'volume' key not found in data")
-                }
-            case .failure(let error):
-                print("Error fetching current volume: \(error)")
+        do {
+            let data = try await sendRequest(endpoint: "volume", method: "GET")
+            if let volume = data["volume"] as? Double {
+                self.volume = volume
+                print("Current volume: \(volume)")
+            } else {
+                throw NetworkError.decodingError
             }
-        }
-    }
-    
-    func togglePlayPause() {
-            print("Toggling play/pause")
-            isPlaying.toggle() // Immediately update UI
-            sendRequest(endpoint: "playpause", method: "POST") { [weak self] result in
-                switch result {
-                case .success:
-                    // Server confirmed the change, no need to update UI again
-                    break
-                case .failure:
-                    // Revert the UI change if the server request failed
-                    DispatchQueue.main.async {
-                        self?.isPlaying.toggle()
-                    }
-                }
-            }
-        }
-    
-    func nextTrack() {
-        print("Skipping to next track")
-        sendRequest(endpoint: "next", method: "POST") { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.getCurrentTrack() // Refresh track info after skipping
-            }
+        } catch {
+            handleError(error)
         }
     }
 
-    func previousTrack() {
-        print("Going to previous track")
-        sendRequest(endpoint: "previous", method: "POST") { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.getCurrentTrack() // Refresh track info after going to previous track
-            }
+    func togglePlayPause() async {
+        print("Toggling play/pause")
+        isPlaying.toggle() // Immediately update UI
+        do {
+            _ = try await sendRequest(endpoint: "playpause", method: "POST")
+            // Server confirmed the change, no need to update UI again
+        } catch {
+            // Revert the UI change if the server request failed
+            isPlaying.toggle()
+            handleError(error)
         }
     }
-    
-    func seekToTime() {
-        print("Seeking to time: \(currentTime)")
-        sendRequest(endpoint: "seek", method: "POST", body: ["position": currentTime])
+
+    func nextTrack() async {
+        print("Skipping to next track")
+        do {
+            _ = try await sendRequest(endpoint: "next", method: "POST")
+            await getCurrentTrack() // Refresh track info after skipping
+        } catch {
+            handleError(error)
+        }
     }
-    
-    func toggleLike() {
+
+    func previousTrack() async {
+        print("Going to previous track")
+        do {
+            _ = try await sendRequest(endpoint: "previous", method: "POST")
+            await getCurrentTrack() // Refresh track info after going to previous track
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func seekToTime() async {
+        print("Seeking to time: \(currentTime)")
+        do {
+            _ = try await sendRequest(endpoint: "seek", method: "POST", body: ["position": currentTime])
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func toggleLike() async {
         let newRating = isLiked ? 0 : 1
         print("Toggling like status to: \(newRating)")
-        sendRequest(endpoint: "set-rating", method: "POST", body: ["rating": newRating]) { [weak self] result in
-            if case .success = result {
-                DispatchQueue.main.async {
-                    self?.isLiked.toggle()
-                    self?.showFavoritePopup = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self?.showFavoritePopup = false
-                    }
-                }
+        do {
+            _ = try await sendRequest(endpoint: "set-rating", method: "POST", body: ["rating": newRating])
+            isLiked.toggle()
+            showFavoritePopup = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                self.showFavoritePopup = false
             }
-        }
-    }
-    
-    func toggleAddToLibrary() {
-        if !isInLibrary {
-            print("Adding to library")
-            sendRequest(endpoint: "add-to-library", method: "POST") { [weak self] result in
-                if case .success = result {
-                    DispatchQueue.main.async {
-                        self?.isInLibrary = true
-                        self?.showLibraryPopup = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self?.showLibraryPopup = false
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    func adjustVolume() {
-        print("Adjusting volume to: \(volume)")
-        sendRequest(endpoint: "volume", method: "POST", body: ["volume": volume]) { [weak self] result in
-            switch result {
-            case .success(let data):
-                if let newVolume = data["volume"] as? Double {
-                    DispatchQueue.main.async {
-                        self?.volume = newVolume
-                    }
-                    print("Volume adjusted to: \(newVolume)")
-                }
-            case .failure(let error):
-                print("Error adjusting volume: \(error)")
-            }
-        }
-    }
-    
-    private func setManualData(_ info: [String: Any]) {
-        print("Setting manual data: \(info)")
-        DispatchQueue.main.async {
-            let title = info["name"] as? String ?? ""
-            let artist = info["artistName"] as? String ?? ""
-            let album = info["albumName"] as? String ?? ""
-            let duration = info["durationInMillis"] as? Double ?? 0
-            
-            if let artwork = info["artwork"] as? [String: Any],
-               let artworkUrl = artwork["url"] as? String {
-                self.currentTrack = Track(id: info["id"] as? String ?? "",
-                                          title: title,
-                                          artist: artist,
-                                          album: album,
-                                          artwork: artworkUrl,
-                                          duration: duration / 1000)
-            }
-            
-            self.isLiked = info["inFavorites"] as? Bool ?? false
-            self.isInLibrary = info["inLibrary"] as? Bool ?? false
-            self.duration = duration / 1000
-            
-            if let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
-                self.currentTime = currentPlaybackTime
-            }
-            
-            // Assume it's playing if we have track info
-            self.isPlaying = true
+        } catch {
+            handleError(error)
         }
     }
 
-    private func setAdaptiveData(_ info: [String: Any]) {
-        print("Setting adaptive data: \(info)")
-        DispatchQueue.main.async {
-            self.isLiked = info["inFavorites"] as? Bool ?? false
-            self.isInLibrary = info["inLibrary"] as? Bool ?? false
-            
-            if let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
-                self.currentTime = currentPlaybackTime
-            }
-            if let durationInMillis = info["durationInMillis"] as? Double {
-                self.duration = durationInMillis / 1000
+    func toggleAddToLibrary() async {
+        if !isInLibrary {
+            print("Adding to library")
+            do {
+                _ = try await sendRequest(endpoint: "add-to-library", method: "POST")
+                isInLibrary = true
+                showLibraryPopup = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.showLibraryPopup = false
+                }
+            } catch {
+                handleError(error)
             }
         }
     }
-    
-    private func setPlaybackStatus(_ info: [String: Any]) {
-        print("Setting playback status: \(info)")
-        if let state = info["state"] as? String {
-            self.isPlaying = (state == "playing")
+
+    func adjustVolume() {
+        volumeDebouncer?.call()
+    }
+
+    private func adjustVolumeDebounced() async {
+        print("Adjusting volume to: \(volume)")
+        do {
+            let data = try await sendRequest(endpoint: "volume", method: "POST", body: ["volume": volume])
+            if let newVolume = data["volume"] as? Double {
+                self.volume = newVolume
+                print("Volume adjusted to: \(newVolume)")
+            } else {
+                throw NetworkError.decodingError
+            }
+        } catch {
+            handleError(error)
         }
     }
-    
-    private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil, completion: ((Result<[String: Any], Error>) -> Void)? = nil) {
+
+    func seekToTime() {
+        seekDebouncer?.call()
+    }
+
+    private func seekToTimeDebounced() async {
+        print("Seeking to time: \(currentTime)")
+        do {
+            _ = try await sendRequest(endpoint: "seek", method: "POST", body: ["position": currentTime])
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func loadImage(for url: URL) async -> UIImage? {
+        // Check cache first
+        if let cachedImage = imageCache.object(forKey: url.absoluteString as NSString) {
+            return cachedImage
+        }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let image = UIImage(data: data) {
+                // Cache the image
+                imageCache.setObject(image, forKey: url.absoluteString as NSString)
+                return image
+            }
+        } catch {
+            print("Error loading image: \(error)")
+        }
+        return nil
+    }
+
+    private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> [String: Any] {
         guard let url = URL(string: "http://\(device.host):10767/api/v1/playback/\(endpoint)") else {
-            print("Invalid URL")
-            completion?(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
-            return
+            throw NetworkError.invalidURL
         }
 
         print("Sending request to: \(url.absoluteString)")
@@ -1073,41 +1381,52 @@ class MusicPlayerViewModel: ObservableObject {
             print("Request body: \(body)")
         }
 
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Network error: \(error.localizedDescription)")
-                completion?(.failure(error))
-                return
-            }
+        let (data, response) = try await URLSession.shared.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print("Invalid response")
-                completion?(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])))
-                return
-            }
-
-            print("Response status code: \(httpResponse.statusCode)")
-
-            guard let data = data else {
-                print("No data received")
-                completion?(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
-                return
-            }
-
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                    print("Received data: \(json)")
-                    completion?(.success(json))
-                } else {
-                    print("Invalid JSON format")
-                    completion?(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON format"])))
-                }
-            } catch {
-                print("JSON parsing error: \(error.localizedDescription)")
-                completion?(.failure(error))
-            }
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
         }
 
-        task.resume()
+        print("Response status code: \(httpResponse.statusCode)")
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.serverError("Server responded with status code \(httpResponse.statusCode)")
+        }
+
+        do {
+            if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                print("Received data: \(json)")
+                return json
+            } else {
+                throw NetworkError.decodingError
+            }
+        } catch {
+            throw NetworkError.decodingError
+        }
+    }
+
+    private func handleError(_ error: Error) {
+        print("Error: \(error.localizedDescription)")
+        errorMessage = error.localizedDescription
+    }
+}
+
+class Debouncer {
+    private let delay: TimeInterval
+    private var workItem: DispatchWorkItem?
+    private let queue: DispatchQueue
+    private let action: () -> Void
+
+    init(delay: TimeInterval, queue: DispatchQueue = .main, action: @escaping () -> Void) {
+        self.delay = delay
+        self.queue = queue
+        self.action = action
+    }
+
+    func call() {
+        workItem?.cancel()
+        let workItem = DispatchWorkItem(block: action)
+        self.workItem = workItem
+        queue.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 }

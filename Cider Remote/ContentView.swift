@@ -10,10 +10,12 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var colorScheme = ColorSchemeManager()
     @State private var showingSettings = false
+    @StateObject private var deviceListViewModel = DeviceListViewModel()
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             DevicesView(showingSettings: $showingSettings)
+                .environmentObject(deviceListViewModel)
         }
         .accentColor(colorScheme.primaryColor)
         .environmentObject(colorScheme)
@@ -24,10 +26,9 @@ struct ContentView: View {
 }
 
 struct DevicesView: View {
-    @StateObject private var viewModel = DeviceListViewModel()
+    @EnvironmentObject private var viewModel: DeviceListViewModel
     @State private var scannedCode: String?
     @State private var isShowingScanner = false
-    @State private var selectedDevice: Device?
     @Binding var showingSettings: Bool
 
     var body: some View {
@@ -36,14 +37,7 @@ struct DevicesView: View {
 
             List {
                 ForEach(viewModel.devices) { device in
-                    NavigationLink(
-                        destination: MusicPlayerView(
-                            device: device,
-                            viewModel: MusicPlayerViewModel(device: device)
-                        ),
-                        tag: device,
-                        selection: $selectedDevice
-                    ) {
+                    NavigationLink(value: device) {
                         DeviceRowView(device: device)
                     }
                     .swipeActions(edge: .trailing) {
@@ -76,12 +70,25 @@ struct DevicesView: View {
                 }
             }
         }
+        .navigationDestination(for: Device.self) { device in
+            LazyView(MusicPlayerView(device: device))
+        }
         .onAppear {
             viewModel.startActivityChecking()
         }
         .onDisappear {
             viewModel.stopActivityChecking()
         }
+    }
+}
+
+struct LazyView<Content: View>: View {
+    let build: () -> Content
+    init(_ build: @autoclosure @escaping () -> Content) {
+        self.build = build
+    }
+    var body: Content {
+        build()
     }
 }
 
