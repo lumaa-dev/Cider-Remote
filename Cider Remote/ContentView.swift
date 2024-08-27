@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var colorScheme = ColorSchemeManager()
     var body: some View {
         TabView {
             DevicesView()
@@ -25,6 +26,8 @@ struct ContentView: View {
                         .foregroundStyle(.tint)
                 }
         }
+        .accentColor(colorScheme.useAdaptiveColors ? colorScheme.primaryColor : Color(hex: "#fa2f48"))
+        .environmentObject(colorScheme)
     }
 }
 
@@ -33,26 +36,44 @@ struct DevicesView: View {
     @State private var scannedCode: String?
     @State private var isShowingScanner = false
     @State private var selectedDevice: Device?
-    
+
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 10) {
-                    DeviceListView(viewModel: viewModel, selectedDevice: $selectedDevice)
-                    RefreshingView(isRefreshing: viewModel.isRefreshing)
+            VStack(spacing: 0) {
+                CiderHeaderView()
+                
+                List {
+                    ForEach(viewModel.devices) { device in
+                        NavigationLink(
+                            destination: MusicPlayerView(
+                                device: device,
+                                viewModel: MusicPlayerViewModel(device: device)
+                            ),
+                            tag: device,
+                            selection: $selectedDevice
+                        ) {
+                            DeviceRowView(device: device)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                viewModel.deleteDevice(device: device)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+
                     AddDeviceView(isShowingScanner: $isShowingScanner, scannedCode: $scannedCode, viewModel: viewModel)
                 }
+                .listStyle(InsetGroupedListStyle())
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    HStack {
-                        Image(uiImage: UIImage(named: "Logo")!)
-                            .resizable()
-                            .scaledToFit()
-                            .padding(5)
-                        Text("Cider Remote")
-                            .font(.headline)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        viewModel.startActivityChecking()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
                     }
                 }
             }
@@ -66,83 +87,88 @@ struct DevicesView: View {
     }
 }
 
-struct HeaderView: View {
+struct CiderHeaderView: View {
     var body: some View {
-        HStack {
-            Image(uiImage: UIImage(named: "Logo")!)
+        VStack(spacing: 8) {
+            Image("Logo")
                 .resizable()
                 .scaledToFit()
-            Text("Cider Remote")
-                .font(.headline)
+                .frame(height: 60)
+            
+            Text("Cider Devices")
+                .font(.title2)
+                .fontWeight(.bold)
         }
-        .frame(height: 30)
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color.secondary.opacity(0.1))
     }
 }
 
-struct DeviceListView: View {
-    @ObservedObject var viewModel: DeviceListViewModel
-    @Binding var selectedDevice: Device?
-    
-    var body: some View {
-        ForEach(viewModel.devices) { device in
-            NavigationLink(
-                destination: MusicPlayerView(
-                    device: device,
-                    viewModel: MusicPlayerViewModel(device: device)
-                ),
-                tag: device,
-                selection: $selectedDevice
-            ) {
-                DeviceRowView(device: device, onDelete: {
-                    viewModel.deleteDevice(device: device)
-                })
-            }
-        }
-    }
-}
+struct StatusIndicator: View {
+    let isActive: Bool
 
-struct DeviceRowView: View {
-    let device: Device
-    let onDelete: () -> Void
-    
     var body: some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(Color.secondary.opacity(0.2))
-            .frame(height: 100)
-            .padding()
-            .overlay {
-                HStack {
-                    DeviceIconView(device: device)
-                    DeviceInfoView(device: device)
-                    DeleteButton(action: onDelete)
-                }
-            }
+        Circle()
+            .fill(isActive ? Color.green : Color.red)
+            .frame(width: 12, height: 12)
+            .overlay(
+                Circle()
+                    .stroke(Color.white, lineWidth: 2)
+            )
+            .shadow(color: isActive ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 2)
     }
 }
 
 struct DeviceIconView: View {
     let device: Device
-    
+
     var body: some View {
-        ZStack {
-            Image(uiImage: deviceImage)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 50, height: 50)
-            Circle()
-                .frame(width: 20, height: 20)
-                .foregroundColor(device.isActive ? .green : .red)
-                .offset(x: -60)
-        }
+        Image(uiImage: deviceImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 40, height: 40)
+            .padding(8)
+            .background(Color.secondary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
-    
+
     var deviceImage: UIImage {
         switch device.platform {
-        case "win32": return UIImage(named: "Windows")!
-        case "darwin": return UIImage(named: "macOS")!
-        case "linux": return UIImage(named: "Linux")!
-        default: return UIImage()
+        case "win32": return UIImage(named: "Windows") ?? UIImage(systemName: "desktopcomputer")!
+        case "darwin": return UIImage(named: "macOS") ?? UIImage(systemName: "desktopcomputer")!
+        case "linux": return UIImage(named: "Linux") ?? UIImage(systemName: "desktopcomputer")!
+        default: return UIImage(systemName: "desktopcomputer")!
         }
+    }
+}
+
+struct DeviceRowView: View {
+    @ObservedObject var device: Device
+
+    var body: some View {
+        HStack(spacing: 12) {
+            DeviceIconView(device: device)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(device.friendlyName)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text("\(device.version) | \(device.platform)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                Text("Host: \(device.host)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            StatusIndicator(isActive: device.isActive)
+        }
+        .padding(.vertical, 8)
     }
 }
 
@@ -195,27 +221,20 @@ struct AddDeviceView: View {
     @Binding var isShowingScanner: Bool
     @Binding var scannedCode: String?
     @ObservedObject var viewModel: DeviceListViewModel
-    
+
     var body: some View {
-        VStack {
-            Text("Can't find your device?")
-                .padding()
-            Button(action: {
-                isShowingScanner = true
-            }) {
-                Image(systemName: "qrcode")
-                    .imageScale(.large)
-                    .foregroundStyle(.tint)
-                Text("Scan QR Code")
-            }
-            .sheet(isPresented: $isShowingScanner) {
-                QRScannerView(scannedCode: $scannedCode)
-            }
-            .onChange(of: scannedCode) { newValue in
-                if let code = newValue {
-                    viewModel.fetchDevices(from: code)
-                    isShowingScanner = false
-                }
+        Button(action: {
+            isShowingScanner = true
+        }) {
+            Label("Add New Cider Device", systemImage: "plus.circle")
+        }
+        .sheet(isPresented: $isShowingScanner) {
+            QRScannerView(scannedCode: $scannedCode)
+        }
+        .onChange(of: scannedCode) { newValue in
+            if let code = newValue {
+                viewModel.fetchDevices(from: code)
+                isShowingScanner = false
             }
         }
     }
