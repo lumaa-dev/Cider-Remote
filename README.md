@@ -1,7 +1,7 @@
 # Cider Remote Guide
 
 ## Introduction
-Cider Remote is an application designed for iPhone (with an Android version on the way) that allows you to control Cider phone. Whether you're using Cider on Windows, macOS, or Linux, you can manage your music playback seamlessly with Cider Remote. Cider Remote communicates with Cider through its RPC server.
+Cider Remote is an application designed for iPhone (with an Android version on the way) that allows you to control Cider with your phone. Whether you're using Cider on Windows, macOS, or Linux, you can manage your music playback seamlessly with Cider Remote. Cider Remote communicates with Cider through its RPC server.
 
 ## Getting Started
 
