@@ -18,12 +18,22 @@ class ColorSchemeManager: ObservableObject {
     @Published var dominantColors: [Color] = []
     @AppStorage("useAdaptiveColors") var useAdaptiveColors: Bool = true {
         didSet {
-            applyColors()
+            if useAdaptiveColors {
+                applyColors()
+            } else {
+                resetToDefaultColors()
+            }
         }
     }
 
     private var lastImageColors: [Color] = []
     private var lastImage: UIImage?
+    private var currentColorScheme: ColorScheme = .light
+
+    func updateColorScheme(_ colorScheme: ColorScheme) {
+        currentColorScheme = colorScheme
+        applyColors()
+    }
 
     func updateColors(from image: UIImage) {
         lastImage = image
@@ -46,17 +56,15 @@ class ColorSchemeManager: ObservableObject {
 
     func resetToDefaultColors() {
         primaryColor = Color(hex: "#fa2f48")
-        secondaryColor = .white
+        secondaryColor = lightDarkColor
         backgroundColor = .black.opacity(0.8)
         dominantColors = []
         updateGlobalAppearance()
     }
 
     func reapplyAdaptiveColors() {
-        if let lastImage = lastImage {
+        if useAdaptiveColors, let lastImage = lastImage {
             updateColors(from: lastImage)
-        } else if useAdaptiveColors && !lastImageColors.isEmpty {
-            applyColors()
         } else {
             resetToDefaultColors()
         }
@@ -70,6 +78,10 @@ class ColorSchemeManager: ObservableObject {
             UISlider.appearance().maximumTrackTintColor = UIColor(self.secondaryColor.opacity(0.5))
         }
     }
+
+    private var lightDarkColor: Color {
+        currentColorScheme == .dark ? .white : .black
+    }
 }
 
 
@@ -78,6 +90,7 @@ struct MusicPlayerView: View {
     @StateObject private var viewModel: MusicPlayerViewModel
     @State private var currentImage: UIImage?
     @EnvironmentObject var colorScheme: ColorSchemeManager
+    @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("buttonSize") private var buttonSize: Size = .medium
     @AppStorage("albumArtSize") private var albumArtSize: Size = .large
@@ -88,7 +101,7 @@ struct MusicPlayerView: View {
 
     init(device: Device) {
         self.device = device
-        _viewModel = StateObject(wrappedValue: MusicPlayerViewModel(device: device))
+        _viewModel = StateObject(wrappedValue: MusicPlayerViewModel(device: device, colorSchemeManager: ColorSchemeManager()))
     }
 
     var body: some View {
@@ -132,19 +145,28 @@ struct MusicPlayerView: View {
                 }
 
                 if showingLyrics {
-                    LyricsView(isShowing: $showingLyrics, currentTrack: viewModel.currentTrack!)
-                        .transition(.move(edge: .bottom))
+                    LyricsView(isShowing: $showingLyrics, viewModel: viewModel)
+                        .transition(
+                            AnyTransition.move(edge: .bottom)
+                                .combined(with: .offset(y: 50))
+                        )
+                        .ignoresSafeArea(edges: .bottom)
                 }
 
                 if showingQueue {
                     QueueView(isShowing: $showingQueue, viewModel: viewModel)
-                        .transition(.move(edge: .bottom))
+                        .transition(
+                            AnyTransition.move(edge: .bottom)
+                                .combined(with: .offset(y: 50))
+                        )
+                        .ignoresSafeArea(edges: .bottom)
                 }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .environmentObject(colorScheme)
         .onAppear {
+            colorScheme.updateColorScheme(systemColorScheme)
             viewModel.startListening()
             Task {
                 await viewModel.initializePlayer()
@@ -157,18 +179,25 @@ struct MusicPlayerView: View {
         }
         .onDisappear {
             viewModel.stopListening()
-            colorScheme.resetToDefaultColors()
+            if colorScheme.useAdaptiveColors {
+                colorScheme.resetToDefaultColors()
+            }
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 Task {
                     viewModel.refreshCurrentTrack()
                 }
-                colorScheme.reapplyAdaptiveColors()
+                if colorScheme.useAdaptiveColors {
+                    colorScheme.reapplyAdaptiveColors()
+                }
             }
         }
+        .onChange(of: systemColorScheme) { newColorScheme in
+            colorScheme.updateColorScheme(newColorScheme)
+        }
         .onChange(of: viewModel.needsColorUpdate) { needsUpdate in
-            if needsUpdate {
+            if needsUpdate && colorScheme.useAdaptiveColors {
                 updateColors()
             }
         }
@@ -220,26 +249,49 @@ struct ScaleButtonStyle: ButtonStyle {
 
 struct LyricsView: View {
     @Binding var isShowing: Bool
-    let currentTrack: Track
+    @ObservedObject var viewModel: MusicPlayerViewModel
     @State private var currentLyricIndex: Int = 0
-    @State private var lyrics: [LyricLine] = []
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Background
                 BlurView(style: .systemMaterial)
                     .edgesIgnoringSafeArea(.all)
 
                 VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(currentTrack.title)
-                                .font(.system(size: 22, weight: .bold))
-                            Text(currentTrack.artist)
-                                .font(.system(size: 18))
-                                .foregroundColor(.secondary)
+                    // Header with Artwork
+                    HStack(spacing: 16) {
+                        if let currentTrack = viewModel.currentTrack {
+                            AsyncImage(url: URL(string: currentTrack.artwork)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                case .failure:
+                                    Image(systemName: "music.note")
+                                        .foregroundColor(.gray)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                            .frame(width: 64, height: 64)
+                            .cornerRadius(8)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(currentTrack.title)
+                                    .font(.system(size: 22, weight: .bold))
+                                    .lineLimit(1)
+                                Text(currentTrack.artist)
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                         Spacer()
                         Button(action: {
@@ -251,44 +303,51 @@ struct LyricsView: View {
                                 .foregroundColor(.secondary)
                                 .font(.system(size: 28))
                         }
+                        .padding(.trailing, 10)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 16)
 
-                    // Current lyric line
-                    if currentLyricIndex < lyrics.count {
-                        Text(lyrics[currentLyricIndex].text)
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 20)
-                            .padding(.horizontal, 16)
-                            .background(Color.secondary.opacity(0.2))
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                    }
+                    Divider().padding(.horizontal, 20)
 
-                    // Lyrics scrollview
-                    ScrollViewReader { scrollView in
-                        ScrollView {
-                            VStack(alignment: .center, spacing: 24) {
-                                ForEach(lyrics) { line in
-                                    Text(line.text)
-                                        .font(.system(size: 18, weight: line.isCurrent ? .semibold : .regular))
-                                        .foregroundColor(line.isCurrent ? .primary : .secondary)
-                                        .id(line.id)
-                                        .frame(maxWidth: .infinity, alignment: .center)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 4)
+                    if viewModel.lyrics.isEmpty {
+                        Text("No lyrics available")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else {
+                        // Lyrics scrollview
+                        ScrollViewReader { scrollView in
+                            ZStack(alignment: .bottom) {
+                                ScrollView(showsIndicators: false) {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Color.clear.frame(height: geometry.size.height * 0.3)
+                                        ForEach(viewModel.lyrics.indices, id: \.self) { index in
+                                            LyricLineView(lyric: viewModel.lyrics[index].text,
+                                                          isActive: index == currentLyricIndex)
+                                                .id(index)
+                                                .transition(.asymmetric(
+                                                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                                                    removal: .move(edge: .top).combined(with: .opacity)
+                                                ))
+                                        }
+                                        Color.clear.frame(height: geometry.size.height * 0.5)
+                                    }
+                                    .padding(.horizontal, 20)
                                 }
-                            }
-                            .padding(.vertical, 20)
-                        }
-                        .onChange(of: currentLyricIndex) { _ in
-                            withAnimation {
-                                scrollView.scrollTo(lyrics[currentLyricIndex].id, anchor: .top)
+                                .onChange(of: currentLyricIndex) { _ in
+                                    withAnimation(.easeInOut(duration: 0.5)) {
+                                        scrollView.scrollTo(max(0, currentLyricIndex - 1), anchor: .top)
+                                    }
+                                }
+                                
+                                // Blur overlay
+                                LinearGradient(gradient: Gradient(colors: [Color.clear, colorScheme == .dark ? .black : .white]),
+                                               startPoint: .top,
+                                               endPoint: .bottom)
+                                    .frame(height: 100)
+                                    .allowsHitTesting(false)
                             }
                         }
                     }
@@ -296,32 +355,50 @@ struct LyricsView: View {
                 .frame(width: geometry.size.width)
             }
         }
-        .foregroundColor(.primary)
+        .foregroundColor(colorScheme == .dark ? .white : .black)
         .onAppear {
-            // Simulated lyrics data
-            lyrics = [
-                LyricLine(text: "When the night has come", timestamp: 0),
-                LyricLine(text: "And the land is dark", timestamp: 4),
-                LyricLine(text: "And the moon is the only light we'll see", timestamp: 8),
-                LyricLine(text: "No, I won't be afraid", timestamp: 12),
-                LyricLine(text: "Oh, I won't be afraid", timestamp: 16),
-                LyricLine(text: "Just as long as you stand, stand by me", timestamp: 20),
-            ]
-
-            // Simulate lyric timing
-            Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    currentLyricIndex = (currentLyricIndex + 1) % lyrics.count
-                    lyrics = lyrics.enumerated().map { index, line in
-                        LyricLine(text: line.text, timestamp: line.timestamp, isCurrent: index == currentLyricIndex)
-                    }
-                }
+            Task {
+                await viewModel.fetchLyrics()
             }
         }
+        .onChange(of: viewModel.currentTime) { newTime in
+            updateCurrentLyric(time: newTime)
+        }
+    }
+
+    private func updateCurrentLyric(time: Double) {
+        for (index, line) in viewModel.lyrics.enumerated() {
+            if line.timestamp > time {
+                if index > 0 {
+                    currentLyricIndex = index - 1
+                } else {
+                    currentLyricIndex = 0
+                }
+                return
+            }
+        }
+        currentLyricIndex = viewModel.lyrics.count - 1
     }
 }
 
-struct LyricLine: Identifiable {
+struct LyricLineView: View {
+    let lyric: String
+    let isActive: Bool
+
+    var body: some View {
+        Text(lyric)
+            .font(.system(size: isActive ? 28 : 20, weight: isActive ? .bold : .regular))
+            .foregroundColor(isActive ? .primary : .secondary)
+            .padding(.vertical, 12)
+            .padding(.trailing, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .scaleEffect(isActive ? 1.05 : 1, anchor: .leading)
+            .opacity(isActive ? 1 : 0.6)
+            .animation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.3), value: isActive)
+    }
+}
+
+struct LyricLine: Identifiable, Equatable {
     let id = UUID()
     let text: String
     let timestamp: Double
@@ -860,7 +937,7 @@ struct AdditionalControlsView: View {
             Spacer()
             
             Button(action: {
-                withAnimation(.spring()) {
+                withAnimation(.easeInOut(duration: 0.5)) {
                     showLyrics.toggle()
                 }
             }) {
@@ -871,7 +948,7 @@ struct AdditionalControlsView: View {
             .buttonStyle(ScaleButtonStyle())
             
             Button(action: {
-                withAnimation(.spring()) {
+                withAnimation(.easeInOut(duration: 0.5)) {
                     showQueue.toggle()
                 }
             }) {
@@ -1036,6 +1113,7 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var showLibraryPopup = false
     @Published var showFavoritePopup = false
     @Published var errorMessage: String?
+    @Published var lyrics: [LyricLine] = []
 
     private var manager: SocketManager?
     private var socket: SocketIOClient?
@@ -1044,9 +1122,13 @@ class MusicPlayerViewModel: ObservableObject {
     private var volumeDebouncer: Debouncer?
     private var seekDebouncer: Debouncer?
     private var imageCache = NSCache<NSString, UIImage>()
+    private var lyricCache: [String: [LyricLine]] = [:]
+    
+    private var colorSchemeManager: ColorSchemeManager
 
-    init(device: Device) {
+    init(device: Device, colorSchemeManager: ColorSchemeManager) {
         self.device = device
+        self.colorSchemeManager = colorSchemeManager
         self.volumeDebouncer = Debouncer(delay: 0.3) { [weak self] in
             guard let self = self else { return }
             Task {
@@ -1150,13 +1232,58 @@ class MusicPlayerViewModel: ObservableObject {
     func getCurrentTrack() async {
         print("Fetching current track")
         do {
-            let data = try await sendRequest(endpoint: "now-playing", method: "GET")
-            if let info = data["info"] as? [String: Any] {
+            let data = try await sendRequest(endpoint: "playback/now-playing", method: "GET")
+            if let jsonDict = data as? [String: Any],
+               let info = jsonDict["info"] as? [String: Any] {
                 updateTrackInfo(info, alt: true)
             } else {
                 throw NetworkError.decodingError
             }
         } catch {
+            handleError(error)
+        }
+    }
+    
+    func fetchLyrics() async {
+        guard let currentTrack = currentTrack else {
+            print("No current track available")
+            return
+        }
+
+        print("Current track ID: \(currentTrack.id)")
+
+        if let cachedLyrics = lyricCache[currentTrack.id] {
+            print("Using cached lyrics for track: \(currentTrack.id)")
+            self.lyrics = cachedLyrics
+            return
+        }
+
+        do {
+            print("Fetching lyrics for track: \(currentTrack.id)")
+            let data = try await sendRequest(endpoint: "lyrics/\(currentTrack.id)", method: "GET")
+            print("Received lyrics data: \(data)")
+
+            if let lyricsData = data as? [[String: Any]] {
+                let parsedLyrics = lyricsData.compactMap { lyricData -> LyricLine? in
+                    guard let start = lyricData["start"] as? Double,
+                          let text = lyricData["text"] as? String,
+                          let empty = lyricData["empty"] as? Bool,
+                          !empty && !text.isEmpty else {
+                        return nil
+                    }
+                    return LyricLine(text: text, timestamp: start)
+                }
+                print("Parsed \(parsedLyrics.count) lyric lines")
+                DispatchQueue.main.async {
+                    self.lyrics = parsedLyrics
+                    self.lyricCache[currentTrack.id] = self.lyrics
+                }
+            } else {
+                print("Unexpected lyrics data format")
+                throw NetworkError.decodingError
+            }
+        } catch {
+            print("Error fetching lyrics: \(error)")
             handleError(error)
         }
     }
@@ -1171,8 +1298,17 @@ class MusicPlayerViewModel: ObservableObject {
     private func setAdaptiveData(_ info: [String: Any]) {
         print("Setting adaptive data: \(info)")
         DispatchQueue.main.async {
-            self.isLiked = info["inFavorites"] as? Bool ?? false
-            self.isInLibrary = info["inLibrary"] as? Bool ?? false
+            if let isLiked = info["inFavorites"] as? Int, isLiked == 1 {
+                self.isLiked = true
+            } else {
+                self.isLiked = false
+            }
+            
+            if let isInLibrary = info["inLibrary"] as? Int, isInLibrary == 1 {
+                self.isInLibrary = true
+            } else {
+                self.isInLibrary = false
+            }
             
             if let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
                 self.currentTime = currentPlaybackTime
@@ -1185,6 +1321,16 @@ class MusicPlayerViewModel: ObservableObject {
 
     private func updateTrackInfo(_ info: [String: Any], alt: Bool = false) {
         print("Updating track info: \(info)")
+        
+        // Extract ID from playParams
+        let id: String
+        if let playParams = info["playParams"] as? [String: Any],
+           let trackId = playParams["id"] as? String {
+            id = trackId
+        } else {
+            id = info["id"] as? String ?? ""
+        }
+        
         let title = info["name"] as? String ?? ""
         let artist = info["artistName"] as? String ?? ""
         let album = info["albumName"] as? String ?? ""
@@ -1196,7 +1342,7 @@ class MusicPlayerViewModel: ObservableObject {
             artworkUrl = artworkUrl.replacingOccurrences(of: "{w}", with: "1024")
             artworkUrl = artworkUrl.replacingOccurrences(of: "{h}", with: "1024")
 
-            let newTrack = Track(id: info["id"] as? String ?? "",
+            let newTrack = Track(id: id,
                                  title: title,
                                  artist: artist,
                                  album: album,
@@ -1205,10 +1351,14 @@ class MusicPlayerViewModel: ObservableObject {
 
             if self.currentTrack != newTrack {
                 self.currentTrack = newTrack
-                self.needsColorUpdate = true
+                self.needsColorUpdate = self.colorSchemeManager.useAdaptiveColors
+                self.lyrics = [] // Clear lyrics when track changes
+                Task {
+                    await self.fetchLyrics() // Fetch lyrics for the new track
+                }
             }
         }
-
+        
         if alt {
             self.isLiked = info["inFavorites"] as? Bool ?? false
             self.isInLibrary = info["inLibrary"] as? Bool ?? false
@@ -1228,8 +1378,9 @@ class MusicPlayerViewModel: ObservableObject {
     func getCurrentVolume() async {
         print("Fetching current volume")
         do {
-            let data = try await sendRequest(endpoint: "volume", method: "GET")
-            if let volume = data["volume"] as? Double {
+            let data = try await sendRequest(endpoint: "playback/volume", method: "GET")
+            if let jsonDict = data as? [String: Any],
+               let volume = jsonDict["volume"] as? Double {
                 self.volume = volume
                 print("Current volume: \(volume)")
             } else {
@@ -1244,7 +1395,7 @@ class MusicPlayerViewModel: ObservableObject {
         print("Toggling play/pause")
         isPlaying.toggle() // Immediately update UI
         do {
-            _ = try await sendRequest(endpoint: "playpause", method: "POST")
+            _ = try await sendRequest(endpoint: "playback/playpause", method: "POST")
             // Server confirmed the change, no need to update UI again
         } catch {
             // Revert the UI change if the server request failed
@@ -1256,7 +1407,7 @@ class MusicPlayerViewModel: ObservableObject {
     func nextTrack() async {
         print("Skipping to next track")
         do {
-            _ = try await sendRequest(endpoint: "next", method: "POST")
+            _ = try await sendRequest(endpoint: "playback/next", method: "POST")
             await getCurrentTrack() // Refresh track info after skipping
         } catch {
             handleError(error)
@@ -1266,7 +1417,7 @@ class MusicPlayerViewModel: ObservableObject {
     func previousTrack() async {
         print("Going to previous track")
         do {
-            _ = try await sendRequest(endpoint: "previous", method: "POST")
+            _ = try await sendRequest(endpoint: "playback/previous", method: "POST")
             await getCurrentTrack() // Refresh track info after going to previous track
         } catch {
             handleError(error)
@@ -1276,7 +1427,7 @@ class MusicPlayerViewModel: ObservableObject {
     func seekToTime() async {
         print("Seeking to time: \(currentTime)")
         do {
-            _ = try await sendRequest(endpoint: "seek", method: "POST", body: ["position": currentTime])
+            _ = try await sendRequest(endpoint: "playback/seek", method: "POST", body: ["position": currentTime])
         } catch {
             handleError(error)
         }
@@ -1286,7 +1437,7 @@ class MusicPlayerViewModel: ObservableObject {
         let newRating = isLiked ? 0 : 1
         print("Toggling like status to: \(newRating)")
         do {
-            _ = try await sendRequest(endpoint: "set-rating", method: "POST", body: ["rating": newRating])
+            _ = try await sendRequest(endpoint: "playback/set-rating", method: "POST", body: ["rating": newRating])
             isLiked.toggle()
             showFavoritePopup = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -1301,7 +1452,7 @@ class MusicPlayerViewModel: ObservableObject {
         if !isInLibrary {
             print("Adding to library")
             do {
-                _ = try await sendRequest(endpoint: "add-to-library", method: "POST")
+                _ = try await sendRequest(endpoint: "playback/add-to-library", method: "POST")
                 isInLibrary = true
                 showLibraryPopup = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -1320,8 +1471,9 @@ class MusicPlayerViewModel: ObservableObject {
     private func adjustVolumeDebounced() async {
         print("Adjusting volume to: \(volume)")
         do {
-            let data = try await sendRequest(endpoint: "volume", method: "POST", body: ["volume": volume])
-            if let newVolume = data["volume"] as? Double {
+            let data = try await sendRequest(endpoint: "playback/volume", method: "POST", body: ["volume": volume])
+            if let jsonDict = data as? [String: Any],
+               let newVolume = jsonDict["volume"] as? Double {
                 self.volume = newVolume
                 print("Volume adjusted to: \(newVolume)")
             } else {
@@ -1339,7 +1491,7 @@ class MusicPlayerViewModel: ObservableObject {
     private func seekToTimeDebounced() async {
         print("Seeking to time: \(currentTime)")
         do {
-            _ = try await sendRequest(endpoint: "seek", method: "POST", body: ["position": currentTime])
+            _ = try await sendRequest(endpoint: "playback/seek", method: "POST", body: ["position": currentTime])
         } catch {
             handleError(error)
         }
@@ -1364,8 +1516,8 @@ class MusicPlayerViewModel: ObservableObject {
         return nil
     }
 
-    private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> [String: Any] {
-        guard let url = URL(string: "http://\(device.host):10767/api/v1/playback/\(endpoint)") else {
+    private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> Any {
+        guard let url = URL(string: "http://\(device.host):10767/api/v1/\(endpoint)") else {
             throw NetworkError.invalidURL
         }
 
@@ -1394,20 +1546,30 @@ class MusicPlayerViewModel: ObservableObject {
         }
 
         do {
-            if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                print("Received data: \(json)")
-                return json
-            } else {
-                throw NetworkError.decodingError
-            }
+            let json = try JSONSerialization.jsonObject(with: data, options: [])
+            print("Received data: \(json)")
+            return json
         } catch {
             throw NetworkError.decodingError
         }
     }
 
     private func handleError(_ error: Error) {
-        print("Error: \(error.localizedDescription)")
-        errorMessage = error.localizedDescription
+        if let networkError = error as? NetworkError {
+            switch networkError {
+            case .invalidURL:
+                errorMessage = "Invalid URL"
+            case .invalidResponse:
+                errorMessage = "Invalid response from server"
+            case .decodingError:
+                errorMessage = "Error decoding data"
+            case .serverError(let message):
+                errorMessage = "Server error: \(message)"
+            }
+        } else {
+            errorMessage = error.localizedDescription
+        }
+        print("Error: \(errorMessage ?? "Unknown error")")
     }
 }
 
