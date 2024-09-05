@@ -29,6 +29,7 @@ struct DevicesView: View {
     @EnvironmentObject private var viewModel: DeviceListViewModel
     @State private var scannedCode: String?
     @State private var isShowingScanner = false
+    @State private var isShowingGuide = false
     @Binding var showingSettings: Bool
 
     var body: some View {
@@ -37,21 +38,36 @@ struct DevicesView: View {
 
             List {
                 ForEach(viewModel.devices) { device in
-                    NavigationLink(value: device) {
-                        DeviceRowView(device: device)
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
+                    if device.isActive {
+                        NavigationLink(value: device) {
+                            DeviceRowView(device: device)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                viewModel.deleteDevice(device: device)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    } else {
+                        OfflineDeviceRowView(device: device) {
                             viewModel.deleteDevice(device: device)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
                         }
                     }
                 }
 
                 AddDeviceView(isShowingScanner: $isShowingScanner, scannedCode: $scannedCode, viewModel: viewModel)
+
+                Button(action: {
+                    isShowingGuide = true
+                }) {
+                    Label("Connection Guide", systemImage: "questionmark.circle")
+                }
             }
             .listStyle(InsetGroupedListStyle())
+            .refreshable {
+                await viewModel.refreshDevices()
+            }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -64,7 +80,9 @@ struct DevicesView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    viewModel.startActivityChecking()
+                    Task {
+                        await viewModel.refreshDevices()
+                    }
                 }) {
                     Image(systemName: "arrow.clockwise")
                 }
@@ -73,11 +91,58 @@ struct DevicesView: View {
         .navigationDestination(for: Device.self) { device in
             LazyView(MusicPlayerView(device: device))
         }
+        .sheet(isPresented: $isShowingGuide) {
+            ConnectionGuideView()
+        }
         .onAppear {
             viewModel.startActivityChecking()
         }
         .onDisappear {
             viewModel.stopActivityChecking()
+        }
+    }
+}
+
+struct OfflineDeviceRowView: View {
+    let device: Device
+    let deleteAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            DeviceIconView(device: device)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(device.friendlyName)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .foregroundColor(.secondary)
+                Text("\(device.version) | \(device.platform)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                Text("Host: \(device.host)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+                .overlay(
+                    Text("Offline")
+                        .font(.caption)
+                        .padding(4)
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(4)
+                        .offset(x: -8, y: -8),
+                    alignment: .topTrailing
+                )
+            StatusIndicator(isActive: device.isActive)
+        }
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive, action: deleteAction) {
+                Label("Delete", systemImage: "trash")
+            }
         }
     }
 }
@@ -122,6 +187,109 @@ struct StatusIndicator: View {
                     .stroke(Color.white, lineWidth: 2)
             )
             .shadow(color: isActive ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 2)
+    }
+}
+
+struct ConnectionGuideView: View {
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Prerequisites:")
+                        .font(.headline)
+                    BulletedList(items: [
+                        "Cider 2.5.2 PTB installed (... > Updates)",
+                        "Cider installed and running on your computer (Windows, macOS, or Linux)",
+                        "Your Device and Cider on the same local network",
+                        "Cider's RPC & WebSocket server enabled (Settings > Connectivity)"
+                    ])
+                    
+                    Text("Connection Steps:")
+                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 15) {
+                        GuideStep(number: 1, text: "Open Cider Remote: Launch the Cider Remote app on your iPhone.")
+                        GuideStep(number: 2, text: "Prepare Cider: Open Cider on your computer, go to Settings > Connectivity, click 'Manage' under 'Manage External Applications', select 'Create Remote', and set up a name for your remote device.")
+                        GuideStep(number: 3, text: "Scan QR Code: In Cider Remote, tap 'Add a New Cider Device' and use the camera to scan the QR code displayed in Cider.")
+                        GuideStep(number: 4, text: "Confirm Connection: Your iPhone should now be paired with Cider.")
+                    }
+                    
+                    Text("Troubleshooting:")
+                        .font(.headline)
+                    Text("If you can't connect:")
+                        .font(.subheadline)
+                    BulletedList(items: [
+                        "Ensure both devices are on the same network",
+                        "Check if Cider's RPC server is running (port 10767)",
+                        "Restart both Cider and Cider Remote",
+                        "Check firewall settings (see below)"
+                    ])
+                    
+                    Text("Firewall Settings:")
+                        .font(.subheadline)
+                    BulletedList(items: [
+                        "Windows: Allow Cider through Windows Defender Firewall (Inbound Port 10767)",
+                        "macOS: Add Cider to allowed apps in Security & Privacy > Firewall",
+                        "Linux: Use your distribution's firewall tool to allow port 10767"
+                    ])
+                    
+                    Text("For QR code scanning issues:")
+                        .font(.subheadline)
+                    BulletedList(items: [
+                        "Ensure the code is clearly visible and well-lit",
+                        "Try adjusting the distance between your phone and the screen"
+                    ])
+                    
+                    Text("Remember: Cider Remote works over local network only, using port 10767.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.top)
+                    
+                    Text("For further assistance, please visit our support forum or GitHub issues page.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.top)
+                }
+                .padding()
+            }
+            .navigationBarTitle("Connection Guide", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Close") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
+    }
+}
+
+struct GuideStep: View {
+    let number: Int
+    let text: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 15) {
+            Text("\(number)")
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.blue))
+            
+            Text(text)
+        }
+    }
+}
+
+struct BulletedList: View {
+    let items: [String]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(items, id: \.self) { item in
+                HStack(alignment: .top, spacing: 10) {
+                    Text("•")
+                    Text(item)
+                }
+            }
+        }
     }
 }
 

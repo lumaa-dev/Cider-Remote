@@ -73,7 +73,7 @@ class ColorSchemeManager: ObservableObject {
     private func updateGlobalAppearance() {
         DispatchQueue.main.async {
             UITabBar.appearance().tintColor = UIColor(self.primaryColor)
-            UINavigationBar.appearance().tintColor = UIColor(self.primaryColor)
+            UINavigationBar.appearance().tintColor = UIColor(self.secondaryColor)
             UISlider.appearance().minimumTrackTintColor = UIColor(self.primaryColor)
             UISlider.appearance().maximumTrackTintColor = UIColor(self.secondaryColor.opacity(0.5))
         }
@@ -142,6 +142,7 @@ struct MusicPlayerView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.bottom, geometry.safeAreaInsets.bottom)
+                    .padding(.top, 30)
                 }
 
                 if showingLyrics {
@@ -162,7 +163,9 @@ struct MusicPlayerView: View {
                         .ignoresSafeArea(edges: .bottom)
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
+        .edgesIgnoringSafeArea(.horizontal)
         .navigationBarTitleDisplayMode(.inline)
         .environmentObject(colorScheme)
         .onAppear {
@@ -250,14 +253,16 @@ struct ScaleButtonStyle: ButtonStyle {
 struct LyricsView: View {
     @Binding var isShowing: Bool
     @ObservedObject var viewModel: MusicPlayerViewModel
-    @State private var currentLyricIndex: Int = 0
+    @State private var activeLine: LyricLine?
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var colorSchemeManager: ColorSchemeManager
+
+    private let lineSpacing: CGFloat = 24 // Increased spacing between lines
+    private let lyricAdvanceTime: Double = 0.3 // Advance lyrics 0.5 seconds early
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background
                 BlurView(style: .systemMaterial)
                     .edgesIgnoringSafeArea(.all)
 
@@ -311,45 +316,20 @@ struct LyricsView: View {
 
                     Divider().padding(.horizontal, 20)
 
+
                     if viewModel.lyrics.isEmpty {
                         Text("No lyrics available")
                             .font(.system(size: 18))
                             .foregroundColor(.secondary)
                             .padding()
                     } else {
-                        // Lyrics scrollview
-                        ScrollViewReader { scrollView in
-                            ZStack(alignment: .bottom) {
-                                ScrollView(showsIndicators: false) {
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Color.clear.frame(height: geometry.size.height * 0.3)
-                                        ForEach(viewModel.lyrics.indices, id: \.self) { index in
-                                            LyricLineView(lyric: viewModel.lyrics[index].text,
-                                                          isActive: index == currentLyricIndex)
-                                                .id(index)
-                                                .transition(.asymmetric(
-                                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                                    removal: .move(edge: .top).combined(with: .opacity)
-                                                ))
-                                        }
-                                        Color.clear.frame(height: geometry.size.height * 0.5)
-                                    }
-                                    .padding(.horizontal, 20)
-                                }
-                                .onChange(of: currentLyricIndex) { _ in
-                                    withAnimation(.easeInOut(duration: 0.5)) {
-                                        scrollView.scrollTo(max(0, currentLyricIndex - 1), anchor: .top)
-                                    }
-                                }
-                                
-                                // Blur overlay
-                                LinearGradient(gradient: Gradient(colors: [Color.clear, colorScheme == .dark ? .black : .white]),
-                                               startPoint: .top,
-                                               endPoint: .bottom)
-                                    .frame(height: 100)
-                                    .allowsHitTesting(false)
-                            }
-                        }
+                        LyricsScrollView(
+                            lyrics: viewModel.lyrics,
+                            activeLine: $activeLine,
+                            currentTime: $viewModel.currentTime,
+                            viewportHeight: geometry.size.height - 100, // Adjust for header
+                            lineSpacing: lineSpacing
+                        )
                     }
                 }
                 .frame(width: geometry.size.width)
@@ -362,39 +342,117 @@ struct LyricsView: View {
             }
         }
         .onChange(of: viewModel.currentTime) { newTime in
-            updateCurrentLyric(time: newTime)
+            updateCurrentLyric(time: newTime + lyricAdvanceTime)
         }
     }
 
     private func updateCurrentLyric(time: Double) {
-        for (index, line) in viewModel.lyrics.enumerated() {
-            if line.timestamp > time {
-                if index > 0 {
-                    currentLyricIndex = index - 1
-                } else {
-                    currentLyricIndex = 0
+        guard let currentLine = viewModel.lyrics.last(where: { $0.timestamp <= time }) else {
+            activeLine = nil
+            return
+        }
+        activeLine = currentLine
+    }
+}
+
+struct LyricsScrollView: View {
+    let lyrics: [LyricLine]
+    @Binding var activeLine: LyricLine?
+    @Binding var currentTime: Double
+    let viewportHeight: CGFloat
+    let lineSpacing: CGFloat
+
+    @State private var isDragging: Bool = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollViewReader { scrollView in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: lineSpacing) {
+                        Spacer(minLength: 140) // Space for one line above active lyric
+                        ForEach(lyrics) { line in
+                            LyricLineView(
+                                lyric: line,
+                                isActive: line == activeLine,
+                                maxWidth: geometry.size.width - 40
+                            )
+                            .id(line.id)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                        }
+                        Spacer(minLength: viewportHeight - 200) // Remaining space below lyrics
+                    }
                 }
-                return
+                .onChange(of: activeLine) { newActiveLine in
+                    if let newActiveLine = newActiveLine, !isDragging {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            if let index = lyrics.firstIndex(of: newActiveLine), index > 0 {
+                                scrollView.scrollTo(lyrics[index - 1].id, anchor: .top)
+                            }
+                        }
+                    }
+                }
             }
         }
-        currentLyricIndex = viewModel.lyrics.count - 1
+        .frame(height: viewportHeight)
+        .gesture(
+            DragGesture()
+                .onChanged { _ in isDragging = true }
+                .onEnded { _ in
+                    isDragging = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.updateActiveLine()
+                    }
+                }
+        )
+        .onAppear {
+            updateActiveLine()
+        }
+        .onChange(of: currentTime) { _ in
+            updateActiveLine()
+        }
+    }
+
+    private func updateActiveLine() {
+        if !isDragging {
+            activeLine = lyrics.last { $0.timestamp <= currentTime + 0.5 }
+        }
     }
 }
 
 struct LyricLineView: View {
-    let lyric: String
+    let lyric: LyricLine
     let isActive: Bool
+    let maxWidth: CGFloat
+
+    @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
     var body: some View {
-        Text(lyric)
-            .font(.system(size: isActive ? 28 : 20, weight: isActive ? .bold : .regular))
-            .foregroundColor(isActive ? .primary : .secondary)
-            .padding(.vertical, 12)
-            .padding(.trailing, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .scaleEffect(isActive ? 1.05 : 1, anchor: .leading)
-            .opacity(isActive ? 1 : 0.6)
-            .animation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.3), value: isActive)
+        Text(lyric.text)
+            .font(.system(size: fontSize, weight: fontWeight))
+            .foregroundColor(textColor)
+            .fixedSize(horizontal: false, vertical: true)
+            .lineLimit(nil)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: maxWidth, alignment: .leading)
+            .animation(.easeInOut(duration: 0.3), value: isActive)
+    }
+
+    private var fontSize: CGFloat {
+        isActive ? 30 : 22
+    }
+
+    private var fontWeight: Font.Weight {
+        isActive ? .bold : .regular
+    }
+
+    private var textColor: Color {
+        if (isActive) {
+            return colorScheme == .dark ? .white : .black
+        } else {
+            return .gray.opacity(0.6)
+        }
     }
 }
 
@@ -402,7 +460,19 @@ struct LyricLine: Identifiable, Equatable {
     let id = UUID()
     let text: String
     let timestamp: Double
-    var isCurrent: Bool = false
+    let isMainLyric: Bool
+}
+
+struct BlurView: UIViewRepresentable {
+    let style: UIBlurEffect.Style
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        return UIVisualEffectView(effect: UIBlurEffect(style: style))
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: style)
+    }
 }
 
 struct QueueView: View {
@@ -489,18 +559,6 @@ struct QueueView: View {
     }
 }
 
-struct BlurView: UIViewRepresentable {
-    let style: UIBlurEffect.Style
-
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        return UIVisualEffectView(effect: UIBlurEffect(style: style))
-    }
-
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        uiView.effect = UIBlurEffect(style: style)
-    }
-}
-
 struct TrackInfoView: View {
     let track: Track
     let onImageLoaded: (UIImage) -> Void
@@ -548,6 +606,7 @@ struct TrackInfoView: View {
             }
             .frame(width: geometry.size.width * 0.9)  // Limit text width to prevent bleeding
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var artworkSize: CGFloat {
@@ -586,7 +645,7 @@ struct PlayerControlsView: View {
     var body: some View {
         VStack(spacing: 10) {
             // Playback bar
-            VStack(spacing: 3) {
+            VStack(spacing: 1) {
                 CustomSlider(value: $viewModel.currentTime,
                              bounds: 0...viewModel.duration,
                              isDragging: $isDragging,
@@ -798,60 +857,6 @@ struct CustomSlider: View {
             )
         }
         .frame(height: 44)
-    }
-}
-
-struct MenuOptionsView: View {
-    @ObservedObject var viewModel: MusicPlayerViewModel
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        List {
-            Button(action: {
-                Task {
-                    await viewModel.toggleAddToLibrary()
-                    presentationMode.wrappedValue.dismiss()
-                }
-            }) {
-                Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
-            }
-
-            // Add more menu options as needed
-        }
-        .listStyle(PlainListStyle())
-    }
-}
-
-struct PopupView: View {
-    let message: String
-    let systemImage: String
-
-    @State private var isShowing = false
-
-    var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Image(systemName: systemImage)
-                Text(message)
-            }
-            .padding()
-            .background(.ultraThinMaterial)
-            .foregroundColor(.primary)
-            .cornerRadius(15)
-            .shadow(radius: 5)
-            .padding(.bottom, 70)
-            .opacity(isShowing ? 1 : 0)
-            .offset(y: isShowing ? 0 : 20)
-        }
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-        .zIndex(1) // Ensure the popup appears above other content
-        .onAppear {
-            withAnimation(.spring()) {
-                isShowing = true
-            }
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        }
     }
 }
 
@@ -1271,7 +1276,9 @@ class MusicPlayerViewModel: ObservableObject {
                           !empty && !text.isEmpty else {
                         return nil
                     }
-                    return LyricLine(text: text, timestamp: start)
+                    // Determine if it's a main lyric or secondary lyric
+                    let isMainLyric = !(text.hasPrefix("(") && text.hasSuffix(")"))
+                    return LyricLine(text: text, timestamp: start, isMainLyric: isMainLyric)
                 }
                 print("Parsed \(parsedLyrics.count) lyric lines")
                 DispatchQueue.main.async {

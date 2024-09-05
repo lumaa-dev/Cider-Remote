@@ -207,7 +207,7 @@ struct QRScannerView: UIViewControllerRepresentable {
 
 
 class Device: Identifiable, Codable, ObservableObject, Hashable {
-    @Published var id: UUID
+    let id: UUID
     let host: String
     let token: String
     let friendlyName: String
@@ -281,6 +281,20 @@ class DeviceListViewModel: ObservableObject {
 
     init() {
         loadDevices()
+    }
+    
+    @MainActor
+    func refreshDevices() async {
+        isRefreshing = true
+        
+        for device in devices {
+            checkDeviceActivity(device: device)
+        }
+        
+        // Simulate a slight delay to show the refresh indicator
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        
+        isRefreshing = false
     }
 
     private func loadDevices() {
@@ -380,18 +394,24 @@ class DeviceListViewModel: ObservableObject {
                     self?.finishRefreshing()
                 case .failure(let error):
                     print("Error checking device activity: \(error.localizedDescription)")
+                    self?.updateDeviceStatus(device: device, isActive: false)
                     self?.finishRefreshing()
                 }
             } receiveValue: { [weak self] httpResponse in
-                if let index = self?.devices.firstIndex(where: { $0.id == device.id }) {
-                    let isActive = (httpResponse?.statusCode == 200)
-                    print("Device activity for \(device.friendlyName): \(httpResponse?.statusCode ?? 0), isActive: \(isActive)")
-                    DispatchQueue.main.async {
-                        self?.devices[index].isActive = isActive
-                    }
-                }
+                let isActive = (httpResponse?.statusCode == 200)
+                print("Device activity for \(device.friendlyName): \(httpResponse?.statusCode ?? 0), isActive: \(isActive)")
+                self?.updateDeviceStatus(device: device, isActive: isActive)
             }
             .store(in: &cancellables)
+    }
+
+    private func updateDeviceStatus(device: Device, isActive: Bool) {
+        DispatchQueue.main.async {
+            if let index = self.devices.firstIndex(where: { $0.id == device.id }) {
+                self.devices[index].isActive = isActive
+                self.objectWillChange.send()
+            }
+        }
     }
 
     private func finishRefreshing() {
@@ -401,13 +421,15 @@ class DeviceListViewModel: ObservableObject {
     }
 
     func startActivityChecking() {
+        stopActivityChecking() // Ensure we're not running multiple timers
+
         // Check first without delay
         for device in self.devices {
             self.checkDeviceActivity(device: device)
         }
 
-        // Schedule refreshes every 10 seconds
-        activityCheckTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+        // Schedule refreshes based on the refresh interval
+        activityCheckTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             for device in self.devices {
                 self.checkDeviceActivity(device: device)
