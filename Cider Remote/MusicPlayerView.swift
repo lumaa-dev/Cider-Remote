@@ -106,24 +106,29 @@ struct MusicPlayerView: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+            let scale: CGFloat = isIPad ? 1.2 : 1.0
+            
             ZStack {
                 BlurredBackgroundView(colors: colorScheme.dominantColors)
 
                 if isLoading {
                     ProgressView()
-                        .scaleEffect(1.5)
+                        .scaleEffect(1.5 * scale)
                         .progressViewStyle(CircularProgressViewStyle(tint: colorScheme.primaryColor))
                 } else {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 20 * scale) {
                         if let currentTrack = viewModel.currentTrack {
                             TrackInfoView(track: currentTrack, onImageLoaded: { image in
                                 currentImage = image
                                 colorScheme.updateColors(from: image)
                                 viewModel.needsColorUpdate = false
                             }, albumArtSize: albumArtSize, geometry: geometry)
+                            .scaleEffect(scale)
 
-                            VStack(spacing: 15) {
+                            VStack(spacing: 15 * scale) {
                                 PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+                                    .scaleEffect(scale)
                                 VolumeControlView(viewModel: viewModel)
                                     .padding(.horizontal)
                                 AdditionalControlsView(
@@ -132,8 +137,9 @@ struct MusicPlayerView: View {
                                     showLyrics: $showingLyrics,
                                     showQueue: $showingQueue
                                 )
+                                .scaleEffect(scale)
                             }
-                            .padding(.horizontal)
+                            .padding(.horizontal, isIPad ? 40 : 20)
                         } else {
                             Text("No track playing")
                                 .font(.title)
@@ -142,7 +148,7 @@ struct MusicPlayerView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.bottom, geometry.safeAreaInsets.bottom)
-                    .padding(.top, 30)
+                    .padding(.top, isIPad ? 50 : 30)
                 }
 
                 if showingLyrics {
@@ -234,10 +240,14 @@ struct MusicPlayerView: View {
 
 extension MusicPlayerViewModel {
     func initializePlayer() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.getCurrentTrack() }
-            group.addTask { await self.getCurrentVolume() }
-            group.addTask { await self.fetchQueueItems() }
+        do {
+            try await getCurrentTrack()
+            try await getCurrentVolume()
+            try await fetchQueueItems()
+        } catch {
+            await MainActor.run {
+                self.handleError(error)
+            }
         }
     }
 }
@@ -327,7 +337,7 @@ struct LyricsView: View {
                             lyrics: viewModel.lyrics,
                             activeLine: $activeLine,
                             currentTime: $viewModel.currentTime,
-                            viewportHeight: geometry.size.height - 100, // Adjust for header
+                            viewportHeight: geometry.size.height - 110, // Adjust for header
                             lineSpacing: lineSpacing
                         )
                     }
@@ -369,7 +379,7 @@ struct LyricsScrollView: View {
             ScrollViewReader { scrollView in
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: lineSpacing) {
-                        Spacer(minLength: 140) // Space for one line above active lyric
+                        Spacer(minLength: 180) // Space for one line above active lyric
                         ForEach(lyrics) { line in
                             LyricLineView(
                                 lyric: line,
@@ -380,7 +390,7 @@ struct LyricsScrollView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 20)
                         }
-                        Spacer(minLength: viewportHeight - 200) // Remaining space below lyrics
+                        Spacer(minLength: viewportHeight - 180) // Remaining space below lyrics
                     }
                 }
                 .onChange(of: activeLine) { newActiveLine in
@@ -566,7 +576,10 @@ struct TrackInfoView: View {
     let geometry: GeometryProxy
 
     var body: some View {
-        VStack(spacing: 20) {
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+        let scale: CGFloat = isIPad ? 1.1 : 1.0  // Slightly reduced scale
+        
+        VStack(spacing: 10 * scale) {  // Reduced spacing
             AsyncImage(url: URL(string: track.artwork)) { phase in
                 switch phase {
                 case .empty:
@@ -589,24 +602,25 @@ struct TrackInfoView: View {
                     EmptyView()
                 }
             }
-            .frame(width: artworkSize, height: artworkSize)
+            .frame(width: artworkSize, height: artworkSize)  // Remove scale from here
             .cornerRadius(8)
             .shadow(radius: 10)
 
-            VStack(spacing: 5) {
+            VStack(spacing: 5 * scale) {  // Reduced spacing
                 Text(track.title)
-                    .font(.system(size: titleFontSize))
+                    .font(.system(size: titleFontSize * scale))
                     .fontWeight(.bold)
                     .lineLimit(1)
 
                 Text(track.artist)
-                    .font(.system(size: artistFontSize))
+                    .font(.system(size: artistFontSize * scale))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
-            .frame(width: geometry.size.width * 0.9)  // Limit text width to prevent bleeding
+            .frame(width: geometry.size.width * (isIPad ? 0.7 : 0.9))
         }
         .frame(maxWidth: .infinity)
+        .padding(.bottom, isIPad ? 20 : 0)  // Add padding at the bottom
     }
 
     private var artworkSize: CGFloat {
@@ -643,9 +657,12 @@ struct PlayerControlsView: View {
     let geometry: GeometryProxy
 
     var body: some View {
-        VStack(spacing: 10) {
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+        let scale: CGFloat = isIPad ? 1.1 : 1.0  // Slightly reduced scale
+        
+        VStack(spacing: 12 * scale) {  // Increased spacing between main elements
             // Playback bar
-            VStack(spacing: 1) {
+            VStack(spacing: isIPad ? 4 : 0) {  // Increased spacing between slider and timestamps
                 CustomSlider(value: $viewModel.currentTime,
                              bounds: 0...viewModel.duration,
                              isDragging: $isDragging,
@@ -667,7 +684,7 @@ struct PlayerControlsView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
-            .frame(width: min(geometry.size.width * 0.9, 500))  // Limit width of playback bar
+            .frame(width: min(geometry.size.width * (isIPad ? 0.7 : 0.9), 500))
 
             HStack(spacing: 0) {
                 Button(action: {
@@ -677,7 +694,7 @@ struct PlayerControlsView: View {
                 }) {
                     Image(systemName: viewModel.isLiked ? "star.fill" : "star")
                         .foregroundColor(viewModel.isLiked ? Color(hex: "#fa2f48") : lightDarkColor)
-                        .frame(width: buttonSize.dimension, height: buttonSize.dimension)
+                        .frame(width: buttonSize.dimension * scale, height: buttonSize.dimension * scale)
                 }
                 .buttonStyle(SpringyButtonStyle())
 
@@ -690,9 +707,9 @@ struct PlayerControlsView: View {
                         }
                     }) {
                         Image(systemName: "backward.fill")
-                            .font(.system(size: buttonSize.fontSize * 1.2))
+                            .font(.system(size: buttonSize.fontSize * 1.2 * scale))
                             .foregroundColor(lightDarkColor)
-                            .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
+                            .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
 
@@ -702,9 +719,9 @@ struct PlayerControlsView: View {
                         }
                     }) {
                         Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: buttonSize.fontSize * 2.5))
+                            .font(.system(size: buttonSize.fontSize * 2.5 * scale))
                             .foregroundColor(lightDarkColor)
-                            .frame(width: buttonSize.dimension * 1.8, height: buttonSize.dimension * 1.8)
+                            .frame(width: buttonSize.dimension * 1.8 * scale, height: buttonSize.dimension * 1.8 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
 
@@ -714,13 +731,13 @@ struct PlayerControlsView: View {
                         }
                     }) {
                         Image(systemName: "forward.fill")
-                            .font(.system(size: buttonSize.fontSize * 1.2))
+                            .font(.system(size: buttonSize.fontSize * 1.2 * scale))
                             .foregroundColor(lightDarkColor)
-                            .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
+                            .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
                 }
-                .frame(width: min(geometry.size.width * 0.6, 300))  // Limit width of main controls
+                .frame(width: min(geometry.size.width * (isIPad ? 0.5 : 0.6), 300))
 
                 Spacer()
 
@@ -747,17 +764,19 @@ struct PlayerControlsView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .foregroundColor(lightDarkColor)
-                        .frame(width: buttonSize.dimension, height: buttonSize.dimension)
+                        .frame(width: buttonSize.dimension * scale, height: buttonSize.dimension * scale)
                 }
                 .buttonStyle(SpringyButtonStyle())
             }
-            .frame(width: min(geometry.size.width * 0.95, 500))
-            .font(.title2)
+            .frame(width: min(geometry.size.width * (isIPad ? 0.8 : 0.95), 500))
+            .font(.system(size: isIPad ? 22 : 20))  // Slightly reduced font size for iPad
         }
+        .padding(.top, isIPad ? 20 : 0)  // Add padding at the top
     }
 
     private func calculateButtonSpacing() -> CGFloat {
-        let totalWidth = min(geometry.size.width * 0.6, 300)
+        let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+        let totalWidth = min(geometry.size.width * (isIPad ? 0.5 : 0.6), 300)
         let buttonWidths = buttonSize.dimension * 1.2 * 2 + buttonSize.dimension * 1.8
         let remainingSpace = totalWidth - buttonWidths
         return remainingSpace / 4 // Divide by 4 to create 3 equal spaces between buttons
@@ -1150,7 +1169,10 @@ class MusicPlayerViewModel: ObservableObject {
 
     func startListening() {
         print("Attempting to connect to socket")
-        manager = SocketManager(socketURL: URL(string: "http://\(device.host):10767")!, config: [.log(true), .compress])
+        let socketURL = device.connectionMethod == "tunnel"
+            ? "https://\(device.host)"
+            : "http://\(device.host):10767"
+        manager = SocketManager(socketURL: URL(string: socketURL)!, config: [.log(true), .compress])
         socket = manager?.defaultSocket
 
         setupSocketEventHandlers()
@@ -1524,7 +1546,10 @@ class MusicPlayerViewModel: ObservableObject {
     }
 
     private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> Any {
-        guard let url = URL(string: "http://\(device.host):10767/api/v1/\(endpoint)") else {
+        let baseURL = device.connectionMethod == "tunnel"
+            ? "https://\(device.host)"
+            : "http://\(device.host):10767"
+        guard let url = URL(string: "\(baseURL)/api/v1/\(endpoint)") else {
             throw NetworkError.invalidURL
         }
 
