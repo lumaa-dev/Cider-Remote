@@ -5,85 +5,10 @@
 //  Created by Elijah Klaumann on 8/26/24.
 //
 
-
 import SwiftUI
 import UIKit
 import SocketIO
 import Combine
-
-class ColorSchemeManager: ObservableObject {
-    @Published var primaryColor: Color = Color(hex: "#fa2f48")
-    @Published var secondaryColor: Color = .white
-    @Published var backgroundColor: Color = .black.opacity(0.8)
-    @Published var dominantColors: [Color] = []
-    @AppStorage("useAdaptiveColors") var useAdaptiveColors: Bool = true {
-        didSet {
-            if useAdaptiveColors {
-                applyColors()
-            } else {
-                resetToDefaultColors()
-            }
-        }
-    }
-
-    private var lastImageColors: [Color] = []
-    private var lastImage: UIImage?
-    private var currentColorScheme: ColorScheme = .light
-
-    func updateColorScheme(_ colorScheme: ColorScheme) {
-        currentColorScheme = colorScheme
-        applyColors()
-    }
-
-    func updateColors(from image: UIImage) {
-        lastImage = image
-        let colors = image.dominantColors(count: 5)
-        lastImageColors = colors
-        applyColors()
-    }
-
-    func applyColors() {
-        if useAdaptiveColors && !lastImageColors.isEmpty {
-            dominantColors = lastImageColors
-            primaryColor = lastImageColors.first ?? Color(hex: "#fa2f48")
-            secondaryColor = lastImageColors.count > 1 ? lastImageColors[1] : .white
-            backgroundColor = (lastImageColors.count > 2 ? lastImageColors[2] : .black).opacity(0.8)
-        } else {
-            resetToDefaultColors()
-        }
-        updateGlobalAppearance()
-    }
-
-    func resetToDefaultColors() {
-        primaryColor = Color(hex: "#fa2f48")
-        secondaryColor = lightDarkColor
-        backgroundColor = .black.opacity(0.8)
-        dominantColors = []
-        updateGlobalAppearance()
-    }
-
-    func reapplyAdaptiveColors() {
-        if useAdaptiveColors, let lastImage = lastImage {
-            updateColors(from: lastImage)
-        } else {
-            resetToDefaultColors()
-        }
-    }
-
-    private func updateGlobalAppearance() {
-        DispatchQueue.main.async {
-            UITabBar.appearance().tintColor = UIColor(self.primaryColor)
-            UINavigationBar.appearance().tintColor = UIColor(self.secondaryColor)
-            UISlider.appearance().minimumTrackTintColor = UIColor(self.primaryColor)
-            UISlider.appearance().maximumTrackTintColor = UIColor(self.secondaryColor.opacity(0.5))
-        }
-    }
-
-    private var lightDarkColor: Color {
-        currentColorScheme == .dark ? .white : .black
-    }
-}
-
 
 struct MusicPlayerView: View {
     let device: Device
@@ -92,8 +17,8 @@ struct MusicPlayerView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("buttonSize") private var buttonSize: Size = .medium
-    @AppStorage("albumArtSize") private var albumArtSize: Size = .large
+    @AppStorage("buttonSize") private var buttonSize: ElementSize = .medium
+    @AppStorage("albumArtSize") private var albumArtSize: ElementSize = .large
 
     @State private var showingLyrics = false
     @State private var showingQueue = false
@@ -150,30 +75,18 @@ struct MusicPlayerView: View {
                     .padding(.bottom, geometry.safeAreaInsets.bottom)
                     .padding(.top, isIPad ? 50 : 30)
                 }
-
-                if showingLyrics {
-                    LyricsView(isShowing: $showingLyrics, viewModel: viewModel)
-                        .transition(
-                            AnyTransition.move(edge: .bottom)
-                                .combined(with: .offset(y: 50))
-                        )
-                        .ignoresSafeArea(edges: .bottom)
-                }
-
-                if showingQueue {
-                    QueueView(isShowing: $showingQueue, viewModel: viewModel)
-                        .transition(
-                            AnyTransition.move(edge: .bottom)
-                                .combined(with: .offset(y: 50))
-                        )
-                        .ignoresSafeArea(edges: .bottom)
-                }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
         .edgesIgnoringSafeArea(.horizontal)
         .navigationBarTitleDisplayMode(.inline)
         .environmentObject(colorScheme)
+        .fullScreenCover(isPresented: $showingLyrics) {
+            LyricsView(isShowing: $showingLyrics, viewModel: viewModel)
+        }
+        .fullScreenCover(isPresented: $showingQueue) {
+            QueueView(isShowing: $showingQueue, viewModel: viewModel)
+        }
         .onAppear {
             colorScheme.updateColorScheme(systemColorScheme)
             viewModel.startListening()
@@ -267,7 +180,7 @@ struct LyricsView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
-    private let lineSpacing: CGFloat = 24 // Increased spacing between lines
+    private let lineSpacing: CGFloat = 18 // Increased spacing between lines
     private let lyricAdvanceTime: Double = 0.3 // Advance lyrics 0.5 seconds early
 
     var body: some View {
@@ -328,10 +241,14 @@ struct LyricsView: View {
 
 
                     if viewModel.lyrics.isEmpty {
+                        Spacer()
+
                         Text("No lyrics available")
                             .font(.system(size: 18))
                             .foregroundColor(.secondary)
                             .padding()
+
+                        Spacer()
                     } else {
                         LyricsScrollView(
                             lyrics: viewModel.lyrics,
@@ -436,25 +353,17 @@ struct LyricLineView: View {
     let maxWidth: CGFloat
 
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
     var body: some View {
         Text(lyric.text)
-            .font(.system(size: fontSize, weight: fontWeight))
+            .font(.system(size: 30, weight: .bold))
             .foregroundColor(textColor)
             .fixedSize(horizontal: false, vertical: true)
             .lineLimit(nil)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: maxWidth, alignment: .leading)
-            .animation(.easeInOut(duration: 0.3), value: isActive)
-    }
-
-    private var fontSize: CGFloat {
-        isActive ? 30 : 22
-    }
-
-    private var fontWeight: Font.Weight {
-        isActive ? .bold : .regular
+            .scaleEffect(isActive ? 1.0 : 0.7, anchor: .leading)
+            .animation(.spring(duration: 0.3), value: isActive)
     }
 
     private var textColor: Color {
@@ -572,7 +481,7 @@ struct QueueView: View {
 struct TrackInfoView: View {
     let track: Track
     let onImageLoaded: (UIImage) -> Void
-    let albumArtSize: Size
+    let albumArtSize: ElementSize
     let geometry: GeometryProxy
 
     var body: some View {
@@ -653,7 +562,7 @@ struct PlayerControlsView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @State private var isDragging = false
     @Environment(\.colorScheme) var systemColorScheme
-    let buttonSize: Size
+    let buttonSize: ElementSize
     let geometry: GeometryProxy
 
     var body: some View {
@@ -861,7 +770,7 @@ struct CustomSlider: View {
 
                         // Haptic feedback
                         if let last = lastDragValue, abs(newValue - last) > (bounds.upperBound - bounds.lowerBound) / 100 {
-                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            let impact = UIImpactFeedbackGenerator(style: .light) //MARK: API is deprecated
                             impact.impactOccurred()
                             lastDragValue = newValue
                         } else if lastDragValue == nil {
@@ -883,7 +792,7 @@ struct LargeButton: View {
     let title: String
     let systemImage: String
     let action: () -> Void
-    let size: Size
+    let size: ElementSize
     let geometry: GeometryProxy
 
     var body: some View {
@@ -914,7 +823,7 @@ struct SmallButton: View {
     let title: String
     let systemImage: String
     let action: () -> Void
-    let size: Size
+    let size: ElementSize
     let geometry: GeometryProxy
 
     var body: some View {
@@ -950,7 +859,7 @@ struct SmallButton: View {
 }
 
 struct AdditionalControlsView: View {
-    let buttonSize: Size
+    let buttonSize: ElementSize
     let geometry: GeometryProxy
     @Environment(\.colorScheme) var colorScheme
     @Binding var showLyrics: Bool

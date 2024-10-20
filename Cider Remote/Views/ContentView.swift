@@ -411,38 +411,6 @@ struct ConnectionGuideView: View {
     }
 }
 
-struct GuideStep: View {
-    let number: Int
-    let text: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 15) {
-            Text("\(number)")
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.blue))
-            
-            Text(text)
-        }
-    }
-}
-
-struct BulletedList: View {
-    let items: [String]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            ForEach(items, id: \.self) { item in
-                HStack(alignment: .top, spacing: 10) {
-                    Text("•")
-                    Text(item)
-                }
-            }
-        }
-    }
-}
-
 struct DeviceIconView: View {
     let device: Device
 
@@ -535,12 +503,9 @@ struct RefreshingView: View {
     
     var body: some View {
         if isRefreshing {
-            HStack {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle())
-                Text("Refreshing...")
-            }
-            .padding()
+            ProgressView("Refreshing...")
+                .progressViewStyle(.circular)
+                .padding()
         }
     }
 }
@@ -558,6 +523,15 @@ struct AddDeviceView: View {
         }
         .sheet(isPresented: $isShowingScanner) {
             QRScannerView(scannedCode: $scannedCode)
+                .overlay(alignment: .top) {
+                    Text("Scan the Cider QR code")
+                        .font(.caption)
+                        .padding(.horizontal)
+                        .padding(.vertical, 7.5)
+                        .background(Material.thin)
+                        .clipShape(.rect(cornerRadius: 15.5))
+                        .padding(.top, 22.5)
+                }
         }
         .onChange(of: scannedCode) { newValue in
             if let code = newValue {
@@ -568,159 +542,6 @@ struct AddDeviceView: View {
     }
 }
 
-enum Size: String, CaseIterable, Identifiable {
-    case small, medium, large
-    var id: Self { self }
-    
-    var dimension: CGFloat {
-        switch self {
-        case .small: return 40
-        case .medium: return 60  // This was 50 before, now it's 60 to match the original size
-        case .large: return 80   // Increased to take up more space
-        }
-    }
-    
-    var fontSize: CGFloat {
-        switch self {
-        case .small: return 16
-        case .medium: return 24  // Increased from 20 to 24
-        case .large: return 32   // Increased from 24 to 32
-        }
-    }
-    
-    var padding: CGFloat {
-        switch self {
-        case .small: return 8
-        case .medium: return 12
-        case .large: return 20   // Increased from 16 to 20
-        }
-    }
-}
-
-struct SettingsView: View {
-    @Binding var showingSettings: Bool
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    @AppStorage("buttonSize") private var buttonSize: Size = .medium
-    @AppStorage("albumArtSize") private var albumArtSize: Size = .large
-    @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
-    @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
-    @EnvironmentObject var deviceListViewModel: DeviceListViewModel
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        NavigationView {
-            List {
-                Section(header: Text("TestFlight")) {
-                    HStack {
-                        Image(systemName: "hammer.fill")
-                            .foregroundColor(.orange)
-                        Text("Thank you for testing!")
-                            .font(.headline)
-                    }
-                    .padding(.vertical, 8)
-                }
-
-                Section(header: Text("Feedback")) {
-                    Button(action: reportBug) {
-                        Label("Report a Bug", systemImage: "ladybug.fill")
-                    }
-                }
-
-                Section(header: Text("Appearance")) {
-                    Toggle("Use Dynamic Colors", isOn: $useAdaptiveColors)
-                    
-                    VStack {
-                        HStack {
-                            Image(systemName: "button.horizontal.top.press.fill")
-                            Text("Button Size")
-                        }
-                        Picker("Button Size", selection: $buttonSize) {
-                            ForEach(Size.allCases) { size in
-                                Text(size.rawValue.capitalized).tag(size)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                    
-                    VStack {
-                        HStack {
-                            Image(systemName: "photo.fill")
-                            Text("Album Art Size")
-                        }
-                        Picker("Album Art Size", selection: $albumArtSize) {
-                            ForEach(Size.allCases) { size in
-                                Text(size.rawValue.capitalized).tag(size)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                }
-
-                Section(header: Text("Devices")) {
-                    Button("Reset All Devices", role: .destructive, action: resetAllDevices)
-                    
-                    VStack(alignment: .leading) {
-                        Text("Refresh Interval")
-                        Slider(value: $refreshInterval, in: 5...60, step: 5) {
-                            Text("Refresh Interval: \(Int(refreshInterval)) seconds")
-                        }
-                        Text("\(Int(refreshInterval)) seconds")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                Section(header: Text("About")) {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Section {
-                    Text("© Cider Collective 2024")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-
-                    Text("Made with ❤️ by cryptofyre")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .listStyle(InsetGroupedListStyle())
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button("Close") {
-                presentationMode.wrappedValue.dismiss()
-            })
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Settings")
-                        .font(.headline)
-                }
-            }
-        }
-    }
-
-    private func reportBug() {
-        if let url = URL(string: "https://github.com/ciderapp/Cider-Remote/issues/new") {
-            UIApplication.shared.open(url)
-        }
-    }
-    
-    private func resetAllDevices() {
-       //TODO
-    }
-}
-
-struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        SettingsView(showingSettings: .constant(true))
-            .environmentObject(ColorSchemeManager())
-            .environmentObject(DeviceListViewModel())
-    }
-}
 #Preview {
     ContentView()
 }
