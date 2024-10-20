@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		B9A455622CC51C19006AEB89 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = B9A455612CC51C19006AEB89 /* SocketIO */; };
 		B9A455652CC51C4C006AEB89 /* ColorSchemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */; };
+		B9A455672CC5309D006AEB89 /* Font+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A455662CC5309D006AEB89 /* Font+Extension.swift */; };
 		B9D289202CC51493008543A7 /* Cider_RemoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D2891E2CC51493008543A7 /* Cider_RemoteTests.swift */; };
 		B9D289242CC51495008543A7 /* Cider_RemoteUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D289212CC51495008543A7 /* Cider_RemoteUITests.swift */; };
 		B9D289252CC51495008543A7 /* Cider_RemoteUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D289222CC51495008543A7 /* Cider_RemoteUITestsLaunchTests.swift */; };
@@ -40,6 +41,7 @@
 
 /* Begin PBXFileReference section */
 		B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSchemeManager.swift; sourceTree = "<group>"; };
+		B9A455662CC5309D006AEB89 /* Font+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Font+Extension.swift"; sourceTree = "<group>"; };
 		B9D2891E2CC51493008543A7 /* Cider_RemoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cider_RemoteTests.swift; sourceTree = "<group>"; };
 		B9D289212CC51495008543A7 /* Cider_RemoteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cider_RemoteUITests.swift; sourceTree = "<group>"; };
 		B9D289222CC51495008543A7 /* Cider_RemoteUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cider_RemoteUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */,
+				B9A455662CC5309D006AEB89 /* Font+Extension.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -314,6 +317,7 @@
 				B9D2892E2CC51497008543A7 /* Cider_RemoteApp.swift in Sources */,
 				B9D289342CC5169A008543A7 /* SettingsView.swift in Sources */,
 				B9D2892F2CC51497008543A7 /* ContentView.swift in Sources */,
+				B9A455672CC5309D006AEB89 /* Font+Extension.swift in Sources */,
 				B9D289302CC51497008543A7 /* MusicPlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

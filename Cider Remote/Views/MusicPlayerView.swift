@@ -35,7 +35,13 @@ struct MusicPlayerView: View {
             let scale: CGFloat = isIPad ? 1.2 : 1.0
             
             ZStack {
-                BlurredBackgroundView(colors: colorScheme.dominantColors)
+                if let currentImage {
+                    BlurredImageView(image: Image(uiImage: currentImage))
+                        .ignoresSafeArea()
+                } else {
+                    LinearGradient(colors: [Color.gray.opacity(0.7), Color.gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
+                        .blur(radius: 60)
+                }
 
                 if isLoading {
                     ProgressView()
@@ -126,6 +132,8 @@ struct MusicPlayerView: View {
     }
 
     private func updateColors() {
+        self.currentImage = nil
+
         guard let artworkUrl = viewModel.currentTrack?.artwork,
               let url = URL(string: artworkUrl) else {
             colorScheme.resetToDefaultColors()
@@ -136,6 +144,8 @@ struct MusicPlayerView: View {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let image = UIImage(data: data) {
+                    self.currentImage = image
+
                     await MainActor.run {
                         colorScheme.updateColors(from: image)
                         viewModel.needsColorUpdate = false
@@ -186,7 +196,7 @@ struct LyricsView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                BlurView(style: .systemMaterial)
+                BlurView(style: .systemThinMaterial)
                     .edgesIgnoringSafeArea(.all)
 
                 VStack(spacing: 0) {
@@ -213,10 +223,10 @@ struct LyricsView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(currentTrack.title)
-                                    .font(.system(size: 22, weight: .bold))
+                                    .font(.system(size: 18, weight: .bold))
                                     .lineLimit(1)
                                 Text(currentTrack.artist)
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
@@ -385,13 +395,15 @@ struct LyricLine: Identifiable, Equatable {
 struct BlurView: UIViewRepresentable {
     let style: UIBlurEffect.Style
 
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        return UIVisualEffectView(effect: UIBlurEffect(style: style))
+    func makeUIView(context: Context) -> UIView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+        DispatchQueue.main.async {
+            view.superview?.superview?.backgroundColor = .clear
+        }
+        return view
     }
 
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        uiView.effect = UIBlurEffect(style: style)
-    }
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
 struct QueueView: View {
@@ -402,7 +414,7 @@ struct QueueView: View {
     var body: some View {
         ZStack {
             // Blurred background
-            BlurView(style: .systemMaterial)
+            BlurView(style: .systemThinMaterial)
                 .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
@@ -534,25 +546,25 @@ struct TrackInfoView: View {
 
     private var artworkSize: CGFloat {
         switch albumArtSize {
-        case .small: return min(geometry.size.width * 0.6, 200)
-        case .medium: return min(geometry.size.width * 0.7, 300)
-        case .large: return min(geometry.size.width * 0.8, 400)
+            case .small: return min(geometry.size.width * 0.6, 200)
+            case .medium: return min(geometry.size.width * 0.7, 300)
+            case .large: return min(geometry.size.width * 0.8, 400)
         }
     }
 
     private var titleFontSize: CGFloat {
         switch albumArtSize {
-        case .small: return 20
-        case .medium: return 24
-        case .large: return 28
+            case .small: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2))
+            case .medium: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 3.0
+            case .large: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 8.0
         }
     }
 
     private var artistFontSize: CGFloat {
         switch albumArtSize {
-        case .small: return 16
-        case .medium: return 18
-        case .large: return 20
+            case .small: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1))
+            case .medium: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 3.0
+            case .large: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 8.0
         }
     }
 }
@@ -582,7 +594,7 @@ struct PlayerControlsView: View {
                                      }
                                  }
                              })
-                    .accentColor(colorScheme.primaryColor)
+                .tint(Color.white)
 
                 // Timestamps
                 HStack {
@@ -751,14 +763,14 @@ struct CustomSlider: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
-                    .fill(Color(UIColor.systemGray5))
+                    .fill(Material.ultraThin)
                     .frame(height: 8)
 
                 Rectangle()
-                    .fill(colorScheme.secondaryColor)
+                    .fill(Color.white.opacity(0.5))
                     .frame(width: CGFloat((value - bounds.lowerBound) / (bounds.upperBound - bounds.lowerBound)) * geometry.size.width, height: 8)
             }
-            .cornerRadius(4)
+            .clipShape(Capsule())
             .frame(height: geometry.size.height)
             .contentShape(Rectangle())
             .gesture(
@@ -784,6 +796,7 @@ struct CustomSlider: View {
                     }
             )
         }
+        .environment(\.colorScheme, ColorScheme.light)
         .frame(height: 44)
     }
 }
@@ -1004,6 +1017,17 @@ struct BlurredBackgroundView: View {
     }
 }
 
+struct BlurredImageView: View {
+    let image: Image
+
+    var body: some View {
+        image
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: UIScreen.main.bounds.width, maxHeight: UIScreen.main.bounds.height)
+            .blur(radius: 60)
+    }
+}
 
 struct Track: Codable, Equatable {
     let id: String

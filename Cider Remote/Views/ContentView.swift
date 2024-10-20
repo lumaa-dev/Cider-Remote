@@ -105,15 +105,6 @@ struct DevicesView: View {
                     Image(systemName: "gear")
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    Task {
-                        await viewModel.refreshDevices()
-                    }
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
         }
         .navigationDestination(for: Device.self) { device in
             LazyView(MusicPlayerView(device: device))
@@ -223,39 +214,39 @@ struct FriendlyNamePromptView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @State private var friendlyName: String = ""
     @Environment(\.colorScheme) var systemColorScheme
-    
+
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
                 Image(systemName: "desktopcomputer")
                     .font(.system(size: 50))
                     .foregroundColor(colorScheme.primaryColor)
-                
+
                 Text("New Device Found")
                     .font(.title2)
                     .fontWeight(.bold)
             }
-            
+
             Text("Please enter a friendly name for this device:")
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("Friendly Name")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 TextField("e.g. Living Room PC", text: $friendlyName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.words)
             }
-            
+
             HStack(spacing: 16) {
                 Button("Cancel") {
                     viewModel.showingNamePrompt = false
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                
+
                 Button("Add Device") {
                     viewModel.addNewDevice(withName: friendlyName)
                     viewModel.showingNamePrompt = false
@@ -326,7 +317,7 @@ struct CiderHeaderView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color.secondary.opacity(0.1))
+        .background(Material.ultraThick)
     }
 }
 
@@ -465,23 +456,6 @@ struct DeviceRowView: View {
             StatusIndicator(isActive: device.isActive)
         }
         .padding(.vertical, 8)
-    }
-}
-
-struct DeviceInfoView: View {
-    let device: Device
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(device.friendlyName)
-                .font(.headline)
-                .foregroundColor(.white)
-            Text("\(device.version) | \(device.platform)")
-                .font(.subheadline)
-            Text("Host: \(device.host)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
     }
 }
 
