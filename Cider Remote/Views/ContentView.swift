@@ -458,38 +458,6 @@ struct RefreshingView: View {
     }
 }
 
-struct AddDeviceView: View {
-    @Binding var isShowingScanner: Bool
-    @Binding var scannedCode: String?
-    @ObservedObject var viewModel: DeviceListViewModel
-
-    var body: some View {
-        Button(action: {
-            isShowingScanner = true
-        }) {
-            Label("Add New Cider Device", systemImage: "plus.circle")
-        }
-        .sheet(isPresented: $isShowingScanner) {
-            QRScannerView(scannedCode: $scannedCode)
-                .overlay(alignment: .top) {
-                    Text("Scan the Cider QR code")
-                        .font(.caption)
-                        .padding(.horizontal)
-                        .padding(.vertical, 7.5)
-                        .background(Material.thin)
-                        .clipShape(.rect(cornerRadius: 15.5))
-                        .padding(.top, 22.5)
-                }
-        }
-        .onChange(of: scannedCode) { newValue in
-            if let code = newValue {
-                viewModel.fetchDevices(from: code)
-                isShowingScanner = false
-            }
-        }
-    }
-}
-
 #Preview {
     ContentView()
 }

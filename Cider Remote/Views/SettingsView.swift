@@ -3,6 +3,8 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.openURL) private var openURL: OpenURLAction
+
     @Binding var showingSettings: Bool
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @AppStorage("buttonSize") private var buttonSize: ElementSize = .medium
@@ -118,7 +120,7 @@ struct SettingsView: View {
 
     private func reportBug() {
         if let url = URL(string: "https://github.com/ciderapp/Cider-Remote/issues/new") {
-            UIApplication.shared.open(url)
+            openURL(url)
         }
     }
 

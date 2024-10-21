@@ -11,15 +11,18 @@ import SocketIO
 import Combine
 
 struct MusicPlayerView: View {
-    let device: Device
-    @StateObject private var viewModel: MusicPlayerViewModel
-    @State private var currentImage: UIImage?
-    @EnvironmentObject var colorScheme: ColorSchemeManager
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject var colorScheme: ColorSchemeManager
+
     @AppStorage("buttonSize") private var buttonSize: ElementSize = .medium
     @AppStorage("albumArtSize") private var albumArtSize: ElementSize = .large
 
+    let device: Device
+
+    @StateObject private var viewModel: MusicPlayerViewModel
+
+    @State private var currentImage: UIImage?
     @State private var showingLyrics = false
     @State private var showingQueue = false
     @State private var isLoading = true
@@ -887,6 +890,11 @@ struct BlurredImageView: View {
 @MainActor
 class MusicPlayerViewModel: ObservableObject {
     let device: Device
+
+    /// The "Now Playing" activity
+    @Published var nowPlaying: NowPlaying? = nil
+    /// Everything Live Activity for the playing song
+    @Published var liveActivity: LiveActivityManager = .init()
     @Published var queueItems: [Track] = []
     @Published var currentTrack: Track?
     @Published var isPlaying: Bool = false
@@ -947,6 +955,13 @@ class MusicPlayerViewModel: ObservableObject {
             
             Task {
                 await self?.getCurrentTrack()
+                self?.nowPlaying = .init(viewModel: self!)
+                self?.nowPlaying?.setNowPlayingInfo()
+                self?.nowPlaying?.setNowPlayingPlaybackInfo()
+
+                if let currentTrack = self?.currentTrack {
+                    self!.liveActivity.startActivity(using: currentTrack)
+                }
             }
         }
 
@@ -969,6 +984,9 @@ class MusicPlayerViewModel: ObservableObject {
                 case "playbackStatus.nowPlayingItemDidChange":
                     if let info = playbackData["data"] as? [String: Any] {
                         self.updateTrackInfo(info)
+                        if let currentTrack = self.currentTrack {
+                            self.liveActivity.startActivity(using: currentTrack)
+                        }
                     }
                 case "playbackStatus.playbackStateDidChange":
                     if let info = playbackData["data"] as? [String: Any] {
@@ -980,6 +998,7 @@ class MusicPlayerViewModel: ObservableObject {
                        let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
                         self.isPlaying = isPlaying == 1 ? true : false
                         self.currentTime = currentPlaybackTime
+                        self.nowPlaying?.setNowPlayingPlaybackInfo()
                     }
                 default:
                     print("Unhandled event type: \(type)")
@@ -1012,9 +1031,9 @@ class MusicPlayerViewModel: ObservableObject {
         // Implement this method to fetch the queue items from the API
         // For now, we'll use dummy data
         queueItems = [
-            Track(id: "1", title: "Stand By Me", artist: "Ben E. King", album: "Don't Play That Song", artwork: "https://example.com/artwork1.jpg", duration: 180),
-            Track(id: "2", title: "Imagine", artist: "John Lennon", album: "Imagine", artwork: "https://example.com/artwork2.jpg", duration: 210),
-            Track(id: "3", title: "What's Going On", artist: "Marvin Gaye", album: "What's Going On", artwork: "https://example.com/artwork3.jpg", duration: 195),
+//            Track(id: "1", title: "Stand By Me", artist: "Ben E. King", album: "Don't Play That Song", artwork: "https://example.com/artwork1.jpg", duration: 180),
+//            Track(id: "2", title: "Imagine", artist: "John Lennon", album: "Imagine", artwork: "https://example.com/artwork2.jpg", duration: 210),
+//            Track(id: "3", title: "What's Going On", artist: "Marvin Gaye", album: "What's Going On", artwork: "https://example.com/artwork3.jpg", duration: 195),
         ]
     }
 
@@ -1025,6 +1044,7 @@ class MusicPlayerViewModel: ObservableObject {
             if let jsonDict = data as? [String: Any],
                let info = jsonDict["info"] as? [String: Any] {
                 updateTrackInfo(info, alt: true)
+                nowPlaying?.setNowPlayingInfo()
             } else {
                 throw NetworkError.decodingError
             }
@@ -1133,12 +1153,22 @@ class MusicPlayerViewModel: ObservableObject {
             artworkUrl = artworkUrl.replacingOccurrences(of: "{w}", with: "1024")
             artworkUrl = artworkUrl.replacingOccurrences(of: "{h}", with: "1024")
 
+            var data: Data? = nil
+
+            Task {
+                let image = await self.loadImage(for: URL(string: artworkUrl)!)
+                if let imgData = image?.pngData() {
+                    data = imgData
+                }
+            }
+
             let newTrack = Track(id: id,
                                  title: title,
                                  artist: artist,
                                  album: album,
                                  artwork: artworkUrl,
-                                 duration: duration / 1000)
+                                 duration: duration / 1000,
+                                 artworkData: data ?? Data())
 
             if self.currentTrack != newTrack {
                 self.currentTrack = newTrack
@@ -1305,6 +1335,12 @@ class MusicPlayerViewModel: ObservableObject {
             print("Error loading image: \(error)")
         }
         return nil
+    }
+
+    func loadArtwork() async -> UIImage? {
+        guard let artwork = self.currentTrack?.artwork else { return nil }
+        let url: URL = URL(string: artwork)!
+        return await self.loadImage(for: url)
     }
 
     private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> Any {
