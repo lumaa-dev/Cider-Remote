@@ -5,6 +5,8 @@ import WidgetKit
 import ActivityKit
 
 class LiveActivityManager {
+    @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = true
+
     var lastActivity: Activity<NowPlayingLiveActivity.NowPlayingAttributes>? = nil
     var activity: Activity<NowPlayingLiveActivity.NowPlayingAttributes>? {
         return Activity<NowPlayingLiveActivity.NowPlayingAttributes>.activities.first
@@ -37,13 +39,29 @@ class LiveActivityManager {
 
     func updateActivity(with content: NowPlayingLiveActivity.NowPlayingAttributes.ContentState) async {
         guard let activity else { return }
-        await activity.update(using: content)
+        await activity
+            .update(
+                using: content,
+                alertConfiguration: alertLiveActivity ? .init(
+                    title: "Cider Remote",
+                    body: "Now Playing: \(content.trackInfo.title) by \(content.trackInfo.artist)",
+                    sound: .default
+                ) : nil
+            )
         print("UPDATED1 LIVE ACTIVITY")
     }
 
     func updateActivity(with track: Track) async {
         guard let activity else { return }
-        await activity.update(using: .init(trackInfo: track))
+        await activity
+            .update(
+                using: .init(trackInfo: track),
+                alertConfiguration: alertLiveActivity ? .init(
+                    title: "Cider Remote",
+                    body: "Now Playing: \(track.title) by \(track.artist)",
+                    sound: .default
+                ) : nil
+            )
         print("UPDATED2 LIVE ACTIVITY")
     }
 

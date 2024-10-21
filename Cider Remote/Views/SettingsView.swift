@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage("albumArtSize") private var albumArtSize: ElementSize = .large
     @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
     @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
+    @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = true
     @EnvironmentObject var deviceListViewModel: DeviceListViewModel
     @Environment(\.presentationMode) var presentationMode
 
@@ -57,6 +58,10 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(Color(uiColor: UIColor.label))
                     .pickerStyle(.menu)
+                }
+
+                Section(header: Text("Advanced")) {
+                    Toggle("Playback Notification", isOn: $alertLiveActivity)
                 }
 
                 Section(header: Text("Devices")) {
