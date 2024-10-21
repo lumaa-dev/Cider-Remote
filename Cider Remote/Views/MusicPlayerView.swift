@@ -113,6 +113,7 @@ struct MusicPlayerView: View {
             if colorScheme.useAdaptiveColors {
                 colorScheme.resetToDefaultColors()
             }
+            LiveActivityManager().stopActivity()
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
