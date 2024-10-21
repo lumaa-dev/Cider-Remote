@@ -267,32 +267,6 @@ struct FriendlyNamePromptView: View {
     }
 }
 
-struct PrimaryButtonStyle: ButtonStyle {
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(colorScheme.primaryColor)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-    }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(Color.secondary.opacity(0.1))
-            .foregroundColor(.primary)
-            .cornerRadius(10)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-    }
-}
-
 struct LazyView<Content: View>: View {
     let build: () -> Content
     init(_ build: @autoclosure @escaping () -> Content) {

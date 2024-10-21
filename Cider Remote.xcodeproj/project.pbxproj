@@ -10,6 +10,10 @@
 		B9A455622CC51C19006AEB89 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = B9A455612CC51C19006AEB89 /* SocketIO */; };
 		B9A455652CC51C4C006AEB89 /* ColorSchemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */; };
 		B9A455672CC5309D006AEB89 /* Font+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A455662CC5309D006AEB89 /* Font+Extension.swift */; };
+		B9CDA82C2CC67C1200FBF580 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA82B2CC67C1200FBF580 /* ButtonStyles.swift */; };
+		B9CDA82E2CC67C9A00FBF580 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA82D2CC67C9A00FBF580 /* Track.swift */; };
+		B9CDA8302CC67CAC00FBF580 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA82F2CC67CAC00FBF580 /* Network.swift */; };
+		B9CDA8322CC67D2E00FBF580 /* CustomSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA8312CC67D2E00FBF580 /* CustomSlider.swift */; };
 		B9D289202CC51493008543A7 /* Cider_RemoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D2891E2CC51493008543A7 /* Cider_RemoteTests.swift */; };
 		B9D289242CC51495008543A7 /* Cider_RemoteUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D289212CC51495008543A7 /* Cider_RemoteUITests.swift */; };
 		B9D289252CC51495008543A7 /* Cider_RemoteUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D289222CC51495008543A7 /* Cider_RemoteUITestsLaunchTests.swift */; };
@@ -42,6 +46,10 @@
 /* Begin PBXFileReference section */
 		B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSchemeManager.swift; sourceTree = "<group>"; };
 		B9A455662CC5309D006AEB89 /* Font+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Font+Extension.swift"; sourceTree = "<group>"; };
+		B9CDA82B2CC67C1200FBF580 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
+		B9CDA82D2CC67C9A00FBF580 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
+		B9CDA82F2CC67CAC00FBF580 /* Network.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network.swift; sourceTree = "<group>"; };
+		B9CDA8312CC67D2E00FBF580 /* CustomSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomSlider.swift; sourceTree = "<group>"; };
 		B9D2891E2CC51493008543A7 /* Cider_RemoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cider_RemoteTests.swift; sourceTree = "<group>"; };
 		B9D289212CC51495008543A7 /* Cider_RemoteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cider_RemoteUITests.swift; sourceTree = "<group>"; };
 		B9D289222CC51495008543A7 /* Cider_RemoteUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cider_RemoteUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -87,8 +95,10 @@
 		B9A455632CC51C3E006AEB89 /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				B9CDA82D2CC67C9A00FBF580 /* Track.swift */,
 				B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */,
 				B9A455662CC5309D006AEB89 /* Font+Extension.swift */,
+				B9CDA82F2CC67CAC00FBF580 /* Network.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -121,12 +131,12 @@
 		B9D2892D2CC51497008543A7 /* Cider Remote */ = {
 			isa = PBXGroup;
 			children = (
-				B9A455632CC51C3E006AEB89 /* Data */,
+				B9D289272CC51497008543A7 /* Preview Content */,
 				B9D289292CC51497008543A7 /* Cider Remote.entitlements */,
 				B9D2892A2CC51497008543A7 /* Cider_RemoteApp.swift */,
 				B9D289382CC5183B008543A7 /* Components */,
 				B9D289372CC51836008543A7 /* Views */,
-				B9D289272CC51497008543A7 /* Preview Content */,
+				B9A455632CC51C3E006AEB89 /* Data */,
 				B9D289282CC51497008543A7 /* Assets.xcassets */,
 			);
 			path = "Cider Remote";
@@ -145,6 +155,8 @@
 		B9D289382CC5183B008543A7 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				B9CDA8312CC67D2E00FBF580 /* CustomSlider.swift */,
+				B9CDA82B2CC67C1200FBF580 /* ButtonStyles.swift */,
 				B9D289352CC5182D008543A7 /* ListHelper.swift */,
 			);
 			path = Components;
@@ -314,11 +326,15 @@
 			files = (
 				B9A455652CC51C4C006AEB89 /* ColorSchemeManager.swift in Sources */,
 				B9D289362CC5182D008543A7 /* ListHelper.swift in Sources */,
+				B9CDA8322CC67D2E00FBF580 /* CustomSlider.swift in Sources */,
 				B9D2892E2CC51497008543A7 /* Cider_RemoteApp.swift in Sources */,
 				B9D289342CC5169A008543A7 /* SettingsView.swift in Sources */,
+				B9CDA82C2CC67C1200FBF580 /* ButtonStyles.swift in Sources */,
+				B9CDA82E2CC67C9A00FBF580 /* Track.swift in Sources */,
 				B9D2892F2CC51497008543A7 /* ContentView.swift in Sources */,
 				B9A455672CC5309D006AEB89 /* Font+Extension.swift in Sources */,
 				B9D289302CC51497008543A7 /* MusicPlayerView.swift in Sources */,
+				B9CDA8302CC67CAC00FBF580 /* Network.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
