@@ -56,6 +56,9 @@ struct NowPlayingLiveActivity: Widget {
 //                        .fill(Material.thin)
 //                        .frame(width: 10, height: 10, alignment: .center)
 //                }
+                Image("Logo")
+                    .resizable()
+                    .scaledToFill()
             }
             .keylineTint(Color.pink)
         }
