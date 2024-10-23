@@ -10,6 +10,7 @@
 		B9A455622CC51C19006AEB89 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = B9A455612CC51C19006AEB89 /* SocketIO */; };
 		B9A455652CC51C4C006AEB89 /* ColorSchemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */; };
 		B9A455672CC5309D006AEB89 /* Font+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A455662CC5309D006AEB89 /* Font+Extension.swift */; };
+		B9C2675E2CC8F301000BC44B /* LifeSaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C2675D2CC8F2FE000BC44B /* LifeSaver.swift */; };
 		B9CDA82C2CC67C1200FBF580 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA82B2CC67C1200FBF580 /* ButtonStyles.swift */; };
 		B9CDA82E2CC67C9A00FBF580 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA82D2CC67C9A00FBF580 /* Track.swift */; };
 		B9CDA8302CC67CAC00FBF580 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CDA82F2CC67CAC00FBF580 /* Network.swift */; };
@@ -96,6 +97,7 @@
 /* Begin PBXFileReference section */
 		B9A455642CC51C4C006AEB89 /* ColorSchemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSchemeManager.swift; sourceTree = "<group>"; };
 		B9A455662CC5309D006AEB89 /* Font+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Font+Extension.swift"; sourceTree = "<group>"; };
+		B9C2675D2CC8F2FE000BC44B /* LifeSaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeSaver.swift; sourceTree = "<group>"; };
 		B9CDA82B2CC67C1200FBF580 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
 		B9CDA82D2CC67C9A00FBF580 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		B9CDA82F2CC67CAC00FBF580 /* Network.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network.swift; sourceTree = "<group>"; };
@@ -201,6 +203,7 @@
 			isa = PBXGroup;
 			children = (
 				B9CDA8532CC686B500FBF580 /* Info.plist */,
+				B9C2675D2CC8F2FE000BC44B /* LifeSaver.swift */,
 				B9CDA8552CC686B500FBF580 /* NowPlayingBundle.swift */,
 				B9CDA8562CC686B500FBF580 /* NowPlayingLiveActivity.swift */,
 				B9CDA8522CC686B500FBF580 /* Assets.xcassets */,
@@ -481,6 +484,7 @@
 				B9CDA8732CC68F6C00FBF580 /* Device.swift in Sources */,
 				B9CDA86B2CC68F3C00FBF580 /* Track.swift in Sources */,
 				B9CDA8762CC68F9D00FBF580 /* ConnectionInfo.swift in Sources */,
+				B9C2675E2CC8F301000BC44B /* LifeSaver.swift in Sources */,
 				B9CDA8592CC686B500FBF580 /* NowPlayingBundle.swift in Sources */,
 				B9CDA85F2CC6870800FBF580 /* NowPlaying.swift in Sources */,
 				B9CDA85D2CC686F700FBF580 /* MusicPlayerView.swift in Sources */,
