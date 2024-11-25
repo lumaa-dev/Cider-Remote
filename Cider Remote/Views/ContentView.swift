@@ -105,15 +105,6 @@ struct DevicesView: View {
                     Image(systemName: "gear")
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    Task {
-                        await viewModel.refreshDevices()
-                    }
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
         }
         .navigationDestination(for: Device.self) { device in
             LazyView(MusicPlayerView(device: device))
@@ -223,39 +214,39 @@ struct FriendlyNamePromptView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @State private var friendlyName: String = ""
     @Environment(\.colorScheme) var systemColorScheme
-    
+
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
                 Image(systemName: "desktopcomputer")
                     .font(.system(size: 50))
                     .foregroundColor(colorScheme.primaryColor)
-                
+
                 Text("New Device Found")
                     .font(.title2)
                     .fontWeight(.bold)
             }
-            
+
             Text("Please enter a friendly name for this device:")
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("Friendly Name")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 TextField("e.g. Living Room PC", text: $friendlyName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.words)
             }
-            
+
             HStack(spacing: 16) {
                 Button("Cancel") {
                     viewModel.showingNamePrompt = false
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                
+
                 Button("Add Device") {
                     viewModel.addNewDevice(withName: friendlyName)
                     viewModel.showingNamePrompt = false
@@ -273,32 +264,6 @@ struct FriendlyNamePromptView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
         )
-    }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(colorScheme.primaryColor)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-    }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(Color.secondary.opacity(0.1))
-            .foregroundColor(.primary)
-            .cornerRadius(10)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
     }
 }
 
@@ -326,7 +291,7 @@ struct CiderHeaderView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color.secondary.opacity(0.1))
+        .background(Material.ultraThick)
     }
 }
 
@@ -411,38 +376,6 @@ struct ConnectionGuideView: View {
     }
 }
 
-struct GuideStep: View {
-    let number: Int
-    let text: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 15) {
-            Text("\(number)")
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.blue))
-            
-            Text(text)
-        }
-    }
-}
-
-struct BulletedList: View {
-    let items: [String]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            ForEach(items, id: \.self) { item in
-                HStack(alignment: .top, spacing: 10) {
-                    Text("•")
-                    Text(item)
-                }
-            }
-        }
-    }
-}
-
 struct DeviceIconView: View {
     let device: Device
 
@@ -500,23 +433,6 @@ struct DeviceRowView: View {
     }
 }
 
-struct DeviceInfoView: View {
-    let device: Device
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(device.friendlyName)
-                .font(.headline)
-                .foregroundColor(.white)
-            Text("\(device.version) | \(device.platform)")
-                .font(.subheadline)
-            Text("Host: \(device.host)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
 struct DeleteButton: View {
     let action: () -> Void
     
@@ -535,192 +451,13 @@ struct RefreshingView: View {
     
     var body: some View {
         if isRefreshing {
-            HStack {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle())
-                Text("Refreshing...")
-            }
-            .padding()
+            ProgressView("Refreshing...")
+                .progressViewStyle(.circular)
+                .padding()
         }
     }
 }
 
-struct AddDeviceView: View {
-    @Binding var isShowingScanner: Bool
-    @Binding var scannedCode: String?
-    @ObservedObject var viewModel: DeviceListViewModel
-
-    var body: some View {
-        Button(action: {
-            isShowingScanner = true
-        }) {
-            Label("Add New Cider Device", systemImage: "plus.circle")
-        }
-        .sheet(isPresented: $isShowingScanner) {
-            QRScannerView(scannedCode: $scannedCode)
-        }
-        .onChange(of: scannedCode) { newValue in
-            if let code = newValue {
-                viewModel.fetchDevices(from: code)
-                isShowingScanner = false
-            }
-        }
-    }
-}
-
-enum Size: String, CaseIterable, Identifiable {
-    case small, medium, large
-    var id: Self { self }
-    
-    var dimension: CGFloat {
-        switch self {
-        case .small: return 40
-        case .medium: return 60  // This was 50 before, now it's 60 to match the original size
-        case .large: return 80   // Increased to take up more space
-        }
-    }
-    
-    var fontSize: CGFloat {
-        switch self {
-        case .small: return 16
-        case .medium: return 24  // Increased from 20 to 24
-        case .large: return 32   // Increased from 24 to 32
-        }
-    }
-    
-    var padding: CGFloat {
-        switch self {
-        case .small: return 8
-        case .medium: return 12
-        case .large: return 20   // Increased from 16 to 20
-        }
-    }
-}
-
-struct SettingsView: View {
-    @Binding var showingSettings: Bool
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    @AppStorage("buttonSize") private var buttonSize: Size = .medium
-    @AppStorage("albumArtSize") private var albumArtSize: Size = .large
-    @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
-    @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
-    @EnvironmentObject var deviceListViewModel: DeviceListViewModel
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        NavigationView {
-            List {
-                Section(header: Text("TestFlight")) {
-                    HStack {
-                        Image(systemName: "hammer.fill")
-                            .foregroundColor(.orange)
-                        Text("Thank you for testing!")
-                            .font(.headline)
-                    }
-                    .padding(.vertical, 8)
-                }
-
-                Section(header: Text("Feedback")) {
-                    Button(action: reportBug) {
-                        Label("Report a Bug", systemImage: "ladybug.fill")
-                    }
-                }
-
-                Section(header: Text("Appearance")) {
-                    Toggle("Use Dynamic Colors", isOn: $useAdaptiveColors)
-                    
-                    VStack {
-                        HStack {
-                            Image(systemName: "button.horizontal.top.press.fill")
-                            Text("Button Size")
-                        }
-                        Picker("Button Size", selection: $buttonSize) {
-                            ForEach(Size.allCases) { size in
-                                Text(size.rawValue.capitalized).tag(size)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                    
-                    VStack {
-                        HStack {
-                            Image(systemName: "photo.fill")
-                            Text("Album Art Size")
-                        }
-                        Picker("Album Art Size", selection: $albumArtSize) {
-                            ForEach(Size.allCases) { size in
-                                Text(size.rawValue.capitalized).tag(size)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                }
-
-                Section(header: Text("Devices")) {
-                    Button("Reset All Devices", role: .destructive, action: resetAllDevices)
-                    
-                    VStack(alignment: .leading) {
-                        Text("Refresh Interval")
-                        Slider(value: $refreshInterval, in: 5...60, step: 5) {
-                            Text("Refresh Interval: \(Int(refreshInterval)) seconds")
-                        }
-                        Text("\(Int(refreshInterval)) seconds")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                Section(header: Text("About")) {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Section {
-                    Text("© Cider Collective 2024")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-
-                    Text("Made with ❤️ by cryptofyre")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .listStyle(InsetGroupedListStyle())
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button("Close") {
-                presentationMode.wrappedValue.dismiss()
-            })
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Settings")
-                        .font(.headline)
-                }
-            }
-        }
-    }
-
-    private func reportBug() {
-        if let url = URL(string: "https://github.com/ciderapp/Cider-Remote/issues/new") {
-            UIApplication.shared.open(url)
-        }
-    }
-    
-    private func resetAllDevices() {
-       //TODO
-    }
-}
-
-struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        SettingsView(showingSettings: .constant(true))
-            .environmentObject(ColorSchemeManager())
-            .environmentObject(DeviceListViewModel())
-    }
-}
 #Preview {
     ContentView()
 }

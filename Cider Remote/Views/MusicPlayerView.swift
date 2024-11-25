@@ -5,96 +5,24 @@
 //  Created by Elijah Klaumann on 8/26/24.
 //
 
-
 import SwiftUI
 import UIKit
 import SocketIO
 import Combine
 
-class ColorSchemeManager: ObservableObject {
-    @Published var primaryColor: Color = Color(hex: "#fa2f48")
-    @Published var secondaryColor: Color = .white
-    @Published var backgroundColor: Color = .black.opacity(0.8)
-    @Published var dominantColors: [Color] = []
-    @AppStorage("useAdaptiveColors") var useAdaptiveColors: Bool = true {
-        didSet {
-            if useAdaptiveColors {
-                applyColors()
-            } else {
-                resetToDefaultColors()
-            }
-        }
-    }
-
-    private var lastImageColors: [Color] = []
-    private var lastImage: UIImage?
-    private var currentColorScheme: ColorScheme = .light
-
-    func updateColorScheme(_ colorScheme: ColorScheme) {
-        currentColorScheme = colorScheme
-        applyColors()
-    }
-
-    func updateColors(from image: UIImage) {
-        lastImage = image
-        let colors = image.dominantColors(count: 5)
-        lastImageColors = colors
-        applyColors()
-    }
-
-    func applyColors() {
-        if useAdaptiveColors && !lastImageColors.isEmpty {
-            dominantColors = lastImageColors
-            primaryColor = lastImageColors.first ?? Color(hex: "#fa2f48")
-            secondaryColor = lastImageColors.count > 1 ? lastImageColors[1] : .white
-            backgroundColor = (lastImageColors.count > 2 ? lastImageColors[2] : .black).opacity(0.8)
-        } else {
-            resetToDefaultColors()
-        }
-        updateGlobalAppearance()
-    }
-
-    func resetToDefaultColors() {
-        primaryColor = Color(hex: "#fa2f48")
-        secondaryColor = lightDarkColor
-        backgroundColor = .black.opacity(0.8)
-        dominantColors = []
-        updateGlobalAppearance()
-    }
-
-    func reapplyAdaptiveColors() {
-        if useAdaptiveColors, let lastImage = lastImage {
-            updateColors(from: lastImage)
-        } else {
-            resetToDefaultColors()
-        }
-    }
-
-    private func updateGlobalAppearance() {
-        DispatchQueue.main.async {
-            UITabBar.appearance().tintColor = UIColor(self.primaryColor)
-            UINavigationBar.appearance().tintColor = UIColor(self.secondaryColor)
-            UISlider.appearance().minimumTrackTintColor = UIColor(self.primaryColor)
-            UISlider.appearance().maximumTrackTintColor = UIColor(self.secondaryColor.opacity(0.5))
-        }
-    }
-
-    private var lightDarkColor: Color {
-        currentColorScheme == .dark ? .white : .black
-    }
-}
-
-
 struct MusicPlayerView: View {
-    let device: Device
-    @StateObject private var viewModel: MusicPlayerViewModel
-    @State private var currentImage: UIImage?
-    @EnvironmentObject var colorScheme: ColorSchemeManager
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("buttonSize") private var buttonSize: Size = .medium
-    @AppStorage("albumArtSize") private var albumArtSize: Size = .large
+    @EnvironmentObject var colorScheme: ColorSchemeManager
 
+    @AppStorage("buttonSize") private var buttonSize: ElementSize = .medium
+    @AppStorage("albumArtSize") private var albumArtSize: ElementSize = .large
+
+    let device: Device
+
+    @StateObject private var viewModel: MusicPlayerViewModel
+
+    @State private var currentImage: UIImage?
     @State private var showingLyrics = false
     @State private var showingQueue = false
     @State private var isLoading = true
@@ -110,7 +38,13 @@ struct MusicPlayerView: View {
             let scale: CGFloat = isIPad ? 1.2 : 1.0
             
             ZStack {
-                BlurredBackgroundView(colors: colorScheme.dominantColors)
+                if let currentImage {
+                    BlurredImageView(image: Image(uiImage: currentImage))
+                        .ignoresSafeArea()
+                } else {
+                    LinearGradient(colors: [Color.gray.opacity(0.7), Color.gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
+                        .blur(radius: 60)
+                }
 
                 if isLoading {
                     ProgressView()
@@ -150,30 +84,18 @@ struct MusicPlayerView: View {
                     .padding(.bottom, geometry.safeAreaInsets.bottom)
                     .padding(.top, isIPad ? 50 : 30)
                 }
-
-                if showingLyrics {
-                    LyricsView(isShowing: $showingLyrics, viewModel: viewModel)
-                        .transition(
-                            AnyTransition.move(edge: .bottom)
-                                .combined(with: .offset(y: 50))
-                        )
-                        .ignoresSafeArea(edges: .bottom)
-                }
-
-                if showingQueue {
-                    QueueView(isShowing: $showingQueue, viewModel: viewModel)
-                        .transition(
-                            AnyTransition.move(edge: .bottom)
-                                .combined(with: .offset(y: 50))
-                        )
-                        .ignoresSafeArea(edges: .bottom)
-                }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
         .edgesIgnoringSafeArea(.horizontal)
         .navigationBarTitleDisplayMode(.inline)
         .environmentObject(colorScheme)
+        .fullScreenCover(isPresented: $showingLyrics) {
+            LyricsView(isShowing: $showingLyrics, viewModel: viewModel)
+        }
+        .fullScreenCover(isPresented: $showingQueue) {
+            QueueView(isShowing: $showingQueue, viewModel: viewModel)
+        }
         .onAppear {
             colorScheme.updateColorScheme(systemColorScheme)
             viewModel.startListening()
@@ -191,6 +113,7 @@ struct MusicPlayerView: View {
             if colorScheme.useAdaptiveColors {
                 colorScheme.resetToDefaultColors()
             }
+            LiveActivityManager().stopActivity()
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
@@ -213,6 +136,8 @@ struct MusicPlayerView: View {
     }
 
     private func updateColors() {
+        self.currentImage = nil
+
         guard let artworkUrl = viewModel.currentTrack?.artwork,
               let url = URL(string: artworkUrl) else {
             colorScheme.resetToDefaultColors()
@@ -223,6 +148,8 @@ struct MusicPlayerView: View {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let image = UIImage(data: data) {
+                    self.currentImage = image
+
                     await MainActor.run {
                         colorScheme.updateColors(from: image)
                         viewModel.needsColorUpdate = false
@@ -240,23 +167,9 @@ struct MusicPlayerView: View {
 
 extension MusicPlayerViewModel {
     func initializePlayer() async {
-        do {
-            try await getCurrentTrack()
-            try await getCurrentVolume()
-            try await fetchQueueItems()
-        } catch {
-            await MainActor.run {
-                self.handleError(error)
-            }
-        }
-    }
-}
-
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.9 : 1)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
+        await getCurrentTrack()
+        await getCurrentVolume()
+        await fetchQueueItems()
     }
 }
 
@@ -267,13 +180,13 @@ struct LyricsView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
-    private let lineSpacing: CGFloat = 24 // Increased spacing between lines
+    private let lineSpacing: CGFloat = 18 // Increased spacing between lines
     private let lyricAdvanceTime: Double = 0.3 // Advance lyrics 0.5 seconds early
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                BlurView(style: .systemMaterial)
+                BlurView(style: .systemThinMaterial)
                     .edgesIgnoringSafeArea(.all)
 
                 VStack(spacing: 0) {
@@ -300,10 +213,10 @@ struct LyricsView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(currentTrack.title)
-                                    .font(.system(size: 22, weight: .bold))
+                                    .font(.system(size: 18, weight: .bold))
                                     .lineLimit(1)
                                 Text(currentTrack.artist)
-                                    .font(.system(size: 18, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
@@ -328,10 +241,14 @@ struct LyricsView: View {
 
 
                     if viewModel.lyrics.isEmpty {
+                        Spacer()
+
                         Text("No lyrics available")
                             .font(.system(size: 18))
                             .foregroundColor(.secondary)
                             .padding()
+
+                        Spacer()
                     } else {
                         LyricsScrollView(
                             lyrics: viewModel.lyrics,
@@ -436,25 +353,17 @@ struct LyricLineView: View {
     let maxWidth: CGFloat
 
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
     var body: some View {
         Text(lyric.text)
-            .font(.system(size: fontSize, weight: fontWeight))
+            .font(.system(size: 30, weight: .bold))
             .foregroundColor(textColor)
             .fixedSize(horizontal: false, vertical: true)
             .lineLimit(nil)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: maxWidth, alignment: .leading)
-            .animation(.easeInOut(duration: 0.3), value: isActive)
-    }
-
-    private var fontSize: CGFloat {
-        isActive ? 30 : 22
-    }
-
-    private var fontWeight: Font.Weight {
-        isActive ? .bold : .regular
+            .scaleEffect(isActive ? 1.0 : 0.7, anchor: .leading)
+            .animation(.spring(duration: 0.3), value: isActive)
     }
 
     private var textColor: Color {
@@ -476,13 +385,15 @@ struct LyricLine: Identifiable, Equatable {
 struct BlurView: UIViewRepresentable {
     let style: UIBlurEffect.Style
 
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        return UIVisualEffectView(effect: UIBlurEffect(style: style))
+    func makeUIView(context: Context) -> UIView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+        DispatchQueue.main.async {
+            view.superview?.superview?.backgroundColor = .clear
+        }
+        return view
     }
 
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        uiView.effect = UIBlurEffect(style: style)
-    }
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
 struct QueueView: View {
@@ -493,7 +404,7 @@ struct QueueView: View {
     var body: some View {
         ZStack {
             // Blurred background
-            BlurView(style: .systemMaterial)
+            BlurView(style: .systemThinMaterial)
                 .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
@@ -572,7 +483,7 @@ struct QueueView: View {
 struct TrackInfoView: View {
     let track: Track
     let onImageLoaded: (UIImage) -> Void
-    let albumArtSize: Size
+    let albumArtSize: ElementSize
     let geometry: GeometryProxy
 
     var body: some View {
@@ -625,25 +536,25 @@ struct TrackInfoView: View {
 
     private var artworkSize: CGFloat {
         switch albumArtSize {
-        case .small: return min(geometry.size.width * 0.6, 200)
-        case .medium: return min(geometry.size.width * 0.7, 300)
-        case .large: return min(geometry.size.width * 0.8, 400)
+            case .small: return min(geometry.size.width * 0.6, 200)
+            case .medium: return min(geometry.size.width * 0.7, 300)
+            case .large: return min(geometry.size.width * 0.8, 400)
         }
     }
 
     private var titleFontSize: CGFloat {
         switch albumArtSize {
-        case .small: return 20
-        case .medium: return 24
-        case .large: return 28
+            case .small: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2))
+            case .medium: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 3.0
+            case .large: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 8.0
         }
     }
 
     private var artistFontSize: CGFloat {
         switch albumArtSize {
-        case .small: return 16
-        case .medium: return 18
-        case .large: return 20
+            case .small: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1))
+            case .medium: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 3.0
+            case .large: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 8.0
         }
     }
 }
@@ -653,7 +564,7 @@ struct PlayerControlsView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @State private var isDragging = false
     @Environment(\.colorScheme) var systemColorScheme
-    let buttonSize: Size
+    let buttonSize: ElementSize
     let geometry: GeometryProxy
 
     var body: some View {
@@ -673,7 +584,7 @@ struct PlayerControlsView: View {
                                      }
                                  }
                              })
-                    .accentColor(colorScheme.primaryColor)
+                .tint(Color.white)
 
                 // Timestamps
                 HStack {
@@ -793,15 +704,6 @@ struct PlayerControlsView: View {
     }
 }
 
-struct ResponsiveButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-            .opacity(configuration.isPressed ? 0.6 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
 struct VolumeControlView: View {
     @ObservedObject var viewModel: MusicPlayerViewModel
     @State private var isDragging = false
@@ -828,129 +730,8 @@ struct VolumeControlView: View {
     }
 }
 
-
-struct CustomSlider: View {
-    @Binding var value: Double
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    let bounds: ClosedRange<Double>
-    @Binding var isDragging: Bool
-    let onEditingChanged: (Bool) -> Void
-
-    @State private var lastDragValue: Double?
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color(UIColor.systemGray5))
-                    .frame(height: 8)
-
-                Rectangle()
-                    .fill(colorScheme.secondaryColor)
-                    .frame(width: CGFloat((value - bounds.lowerBound) / (bounds.upperBound - bounds.lowerBound)) * geometry.size.width, height: 8)
-            }
-            .cornerRadius(4)
-            .frame(height: geometry.size.height)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { gestureValue in
-                        isDragging = true
-                        let newValue = bounds.lowerBound + (bounds.upperBound - bounds.lowerBound) * Double(gestureValue.location.x / geometry.size.width)
-                        value = max(bounds.lowerBound, min(bounds.upperBound, newValue))
-
-                        // Haptic feedback
-                        if let last = lastDragValue, abs(newValue - last) > (bounds.upperBound - bounds.lowerBound) / 100 {
-                            let impact = UIImpactFeedbackGenerator(style: .light)
-                            impact.impactOccurred()
-                            lastDragValue = newValue
-                        } else if lastDragValue == nil {
-                            lastDragValue = newValue
-                        }
-                    }
-                    .onEnded { _ in
-                        isDragging = false
-                        lastDragValue = nil
-                        onEditingChanged(false)
-                    }
-            )
-        }
-        .frame(height: 44)
-    }
-}
-
-struct LargeButton: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-    let size: Size
-    let geometry: GeometryProxy
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: systemImage)
-                Text(title)
-            }
-            .font(.system(size: adjustedFontSize))
-            .foregroundColor(.primary)
-            .frame(maxWidth: .infinity)
-            .frame(height: adjustedHeight)
-            .background(Color.secondary.opacity(0.2))
-            .cornerRadius(8)
-        }
-    }
-
-    private var adjustedFontSize: CGFloat {
-        min(size.fontSize * 0.8, 22)  // Reduce font size and set a maximum
-    }
-
-    private var adjustedHeight: CGFloat {
-        min(size.dimension * 1.2, 60)  // Adjust height and set a maximum
-    }
-}
-
-struct SmallButton: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-    let size: Size
-    let geometry: GeometryProxy
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: systemImage)
-                Text(title)
-            }
-            .font(.system(size: adjustedFontSize))
-            .foregroundColor(.primary)
-            .frame(maxWidth: .infinity)
-            .frame(height: adjustedHeight)
-            .background(Color.secondary.opacity(0.2))
-            .cornerRadius(8)
-        }
-    }
-
-    private var adjustedFontSize: CGFloat {
-        switch size {
-        case .small: return 12
-        case .medium: return 14
-        case .large: return 16
-        }
-    }
-
-    private var adjustedHeight: CGFloat {
-        switch size {
-        case .small: return 30
-        case .medium: return 34
-        case .large: return 38
-        }
-    }
-}
-
 struct AdditionalControlsView: View {
-    let buttonSize: Size
+    let buttonSize: ElementSize
     let geometry: GeometryProxy
     @Environment(\.colorScheme) var colorScheme
     @Binding var showLyrics: Bool
@@ -1095,36 +876,26 @@ struct BlurredBackgroundView: View {
     }
 }
 
+struct BlurredImageView: View {
+    let image: Image
 
-struct Track: Codable, Equatable {
-    let id: String
-    let title: String
-    let artist: String
-    let album: String
-    let artwork: String
-    let duration: Double
-}
-
-struct SpringyButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .contentShape(Rectangle()) // Makes the entire frame tappable
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-            .opacity(configuration.isPressed ? 0.6 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0), value: configuration.isPressed)
+    var body: some View {
+        image
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: UIScreen.main.bounds.width, maxHeight: UIScreen.main.bounds.height)
+            .blur(radius: 60)
     }
-}
-
-enum NetworkError: Error {
-    case invalidURL
-    case invalidResponse
-    case decodingError
-    case serverError(String)
 }
 
 @MainActor
 class MusicPlayerViewModel: ObservableObject {
     let device: Device
+
+    /// The "Now Playing" activity
+    @Published var nowPlaying: NowPlaying? = nil
+    /// Everything Live Activity for the playing song
+    @Published var liveActivity: LiveActivityManager = .init()
     @Published var queueItems: [Track] = []
     @Published var currentTrack: Track?
     @Published var isPlaying: Bool = false
@@ -1185,6 +956,13 @@ class MusicPlayerViewModel: ObservableObject {
             
             Task {
                 await self?.getCurrentTrack()
+                self?.nowPlaying = .init(viewModel: self!)
+                self?.nowPlaying?.setNowPlayingInfo()
+                self?.nowPlaying?.setNowPlayingPlaybackInfo()
+
+                if let currentTrack = self?.currentTrack {
+                    self!.liveActivity.startActivity(using: currentTrack)
+                }
             }
         }
 
@@ -1207,6 +985,9 @@ class MusicPlayerViewModel: ObservableObject {
                 case "playbackStatus.nowPlayingItemDidChange":
                     if let info = playbackData["data"] as? [String: Any] {
                         self.updateTrackInfo(info)
+                        if let currentTrack = self.currentTrack {
+                            self.liveActivity.startActivity(using: currentTrack)
+                        }
                     }
                 case "playbackStatus.playbackStateDidChange":
                     if let info = playbackData["data"] as? [String: Any] {
@@ -1218,6 +999,7 @@ class MusicPlayerViewModel: ObservableObject {
                        let currentPlaybackTime = info["currentPlaybackTime"] as? Double {
                         self.isPlaying = isPlaying == 1 ? true : false
                         self.currentTime = currentPlaybackTime
+                        self.nowPlaying?.setNowPlayingPlaybackInfo()
                     }
                 default:
                     print("Unhandled event type: \(type)")
@@ -1250,9 +1032,9 @@ class MusicPlayerViewModel: ObservableObject {
         // Implement this method to fetch the queue items from the API
         // For now, we'll use dummy data
         queueItems = [
-            Track(id: "1", title: "Stand By Me", artist: "Ben E. King", album: "Don't Play That Song", artwork: "https://example.com/artwork1.jpg", duration: 180),
-            Track(id: "2", title: "Imagine", artist: "John Lennon", album: "Imagine", artwork: "https://example.com/artwork2.jpg", duration: 210),
-            Track(id: "3", title: "What's Going On", artist: "Marvin Gaye", album: "What's Going On", artwork: "https://example.com/artwork3.jpg", duration: 195),
+//            Track(id: "1", title: "Stand By Me", artist: "Ben E. King", album: "Don't Play That Song", artwork: "https://example.com/artwork1.jpg", duration: 180),
+//            Track(id: "2", title: "Imagine", artist: "John Lennon", album: "Imagine", artwork: "https://example.com/artwork2.jpg", duration: 210),
+//            Track(id: "3", title: "What's Going On", artist: "Marvin Gaye", album: "What's Going On", artwork: "https://example.com/artwork3.jpg", duration: 195),
         ]
     }
 
@@ -1263,6 +1045,7 @@ class MusicPlayerViewModel: ObservableObject {
             if let jsonDict = data as? [String: Any],
                let info = jsonDict["info"] as? [String: Any] {
                 updateTrackInfo(info, alt: true)
+                nowPlaying?.setNowPlayingInfo()
             } else {
                 throw NetworkError.decodingError
             }
@@ -1371,12 +1154,22 @@ class MusicPlayerViewModel: ObservableObject {
             artworkUrl = artworkUrl.replacingOccurrences(of: "{w}", with: "1024")
             artworkUrl = artworkUrl.replacingOccurrences(of: "{h}", with: "1024")
 
+            var data: Data? = nil
+
+            Task {
+                let image = await self.loadImage(for: URL(string: artworkUrl)!)
+                if let imgData = image?.pngData() {
+                    data = imgData
+                }
+            }
+
             let newTrack = Track(id: id,
                                  title: title,
                                  artist: artist,
                                  album: album,
                                  artwork: artworkUrl,
-                                 duration: duration / 1000)
+                                 duration: duration / 1000,
+                                 artworkData: data ?? Data())
 
             if self.currentTrack != newTrack {
                 self.currentTrack = newTrack
@@ -1543,6 +1336,12 @@ class MusicPlayerViewModel: ObservableObject {
             print("Error loading image: \(error)")
         }
         return nil
+    }
+
+    func loadArtwork() async -> UIImage? {
+        guard let artwork = self.currentTrack?.artwork else { return nil }
+        let url: URL = URL(string: artwork)!
+        return await self.loadImage(for: url)
     }
 
     private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> Any {
