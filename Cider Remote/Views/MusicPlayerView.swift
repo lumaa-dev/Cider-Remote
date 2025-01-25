@@ -401,6 +401,9 @@ struct QueueView: View {
     @ObservedObject var viewModel: MusicPlayerViewModel
     @Environment(\.colorScheme) var colorScheme
 
+    @State private var searchText: String = ""
+    @FocusState private var isSearching: Bool
+
     var body: some View {
         ZStack {
             // Blurred background
@@ -412,12 +415,14 @@ struct QueueView: View {
                 HStack {
                     Text("Up Next")
                         .font(.system(size: 22, weight: .bold))
+
                     Spacer()
-                    Button(action: {
+
+                    Button {
                         withAnimation(.spring()) {
                             isShowing = false
                         }
-                    }) {
+                    } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
                             .font(.system(size: 28))
@@ -429,48 +434,91 @@ struct QueueView: View {
 
                 // Queue list
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.queueItems, id: \.id) { track in
-                            HStack(spacing: 12) {
-                                AsyncImage(url: URL(string: track.artwork)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        Color.gray.opacity(0.3)
-                                    case .success(let image):
-                                        image.resizable()
-                                    case .failure:
-                                        Image(systemName: "music.note")
-                                            .foregroundColor(.gray)
-                                    @unknown default:
-                                        EmptyView()
-                                    }
-                                }
-                                .frame(width: 50, height: 50)
-                                .cornerRadius(4)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(track.title)
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text(track.artist)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                Text(formatDuration(track.duration))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
-                        }
+                    TextField(text: $searchText, prompt: Text("Search")) {
+                        EmptyView()
                     }
-                    .padding(.vertical, 16)
+                    .focused($isSearching)
+                    .labelsHidden()
+                    .submitLabel(.search)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8.0)
+                    .background(Material.bar)
+                    .clipShape(Capsule())
+                    .padding()
+
+                    if !isSearching && searchText.isEmpty {
+                        Divider()
+                            .overlay { Color.white }
+                            .padding(.horizontal)
+
+                        queueView
+                    }
                 }
             }
         }
         .foregroundColor(.primary)
+    }
+
+    @ViewBuilder
+    private var queueView: some View {
+        if viewModel.queueItems.count <= 0 {
+            if #available(iOS 17.0, *) {
+                ContentUnavailableView("Queue unavailable", systemImage: "list.number", description: Text("The queue system will be integrated in Cider Remote later..."))
+            } else {
+                VStack {
+                    Image(systemName: "list.number")
+                        .imageScale(.large)
+                        .font(.title2)
+                        .padding(.bottom)
+
+                    Text("Queue unavailable")
+                        .font(.title3)
+
+                    Text("The queue system will be integrated in Cider Remote later...")
+                        .font(.caption)
+                        .foregroundStyle(Color.gray)
+                }
+            }
+        } else {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.queueItems, id: \.id) { track in
+                    HStack(spacing: 12) {
+                        AsyncImage(url: URL(string: track.artwork)) { phase in
+                            switch phase {
+                                case .empty:
+                                    Color.gray.opacity(0.3)
+                                case .success(let image):
+                                    image.resizable()
+                                case .failure:
+                                    Image(systemName: "music.note")
+                                        .foregroundColor(.gray)
+                                @unknown default:
+                                    EmptyView()
+                            }
+                        }
+                        .frame(width: 50, height: 50)
+                        .cornerRadius(4)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(track.title)
+                                .font(.system(size: 16, weight: .semibold))
+                            Text(track.artist)
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Text(formatDuration(track.duration))
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                }
+            }
+            .padding(.vertical, 16)
+        }
     }
 
     private func formatDuration(_ duration: Double) -> String {
