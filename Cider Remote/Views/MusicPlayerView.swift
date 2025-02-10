@@ -401,6 +401,12 @@ struct QueueView: View {
     @ObservedObject var viewModel: MusicPlayerViewModel
     @Environment(\.colorScheme) var colorScheme
 
+    @State private var searchText: String = ""
+    @State private var searchResults: [Track] = []
+    @State private var tappedTrack: Track? = nil
+    @State private var fetchingResults: Bool = false
+    @FocusState private var isSearching: Bool
+
     var body: some View {
         ZStack {
             // Blurred background
@@ -412,12 +418,14 @@ struct QueueView: View {
                 HStack {
                     Text("Up Next")
                         .font(.system(size: 22, weight: .bold))
+
                     Spacer()
-                    Button(action: {
+
+                    Button {
                         withAnimation(.spring()) {
                             isShowing = false
                         }
-                    }) {
+                    } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
                             .font(.system(size: 28))
@@ -429,48 +437,168 @@ struct QueueView: View {
 
                 // Queue list
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.queueItems, id: \.id) { track in
-                            HStack(spacing: 12) {
-                                AsyncImage(url: URL(string: track.artwork)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        Color.gray.opacity(0.3)
-                                    case .success(let image):
-                                        image.resizable()
-                                    case .failure:
-                                        Image(systemName: "music.note")
-                                            .foregroundColor(.gray)
-                                    @unknown default:
-                                        EmptyView()
-                                    }
-                                }
-                                .frame(width: 50, height: 50)
-                                .cornerRadius(4)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(track.title)
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text(track.artist)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                Text(formatDuration(track.duration))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 20)
+                    TextField(text: $searchText, prompt: Text("Search")) {
+                        EmptyView()
+                    }
+                    .focused($isSearching)
+                    .labelsHidden()
+                    .submitLabel(.search)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8.0)
+                    .background(Material.bar)
+                    .clipShape(Capsule())
+                    .padding()
+                    .scrollDismissesKeyboard(.immediately)
+                    .onSubmit {
+                        Task {
+                            fetchingResults = true
+                            searchResults = await viewModel.searchSong(query: searchText)
+                            fetchingResults = false
                         }
                     }
-                    .padding(.vertical, 16)
+
+                    if !isSearching && searchText.isEmpty {
+                        Divider()
+                            .overlay { Color.white }
+                            .padding(.horizontal)
+
+                        queueView
+                    } else {
+                        resultsView
+                    }
                 }
             }
         }
         .foregroundColor(.primary)
+    }
+
+    @ViewBuilder
+    private var queueView: some View {
+        if viewModel.queueItems.count <= 0 {
+            if #available(iOS 17.0, *) {
+                ContentUnavailableView("Queue unavailable", systemImage: "list.number", description: Text("The queue system will be integrated in Cider Remote later..."))
+            } else {
+                VStack {
+                    Image(systemName: "list.number")
+                        .imageScale(.large)
+                        .font(.title2)
+                        .padding(.bottom)
+
+                    Text("Queue unavailable")
+                        .font(.title3)
+
+                    Text("The queue system will be integrated in Cider Remote later...")
+                        .font(.caption)
+                        .foregroundStyle(Color.gray)
+                }
+            }
+        } else {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.queueItems, id: \.id) { track in
+                    trackRow(track)
+                }
+            }
+            .padding(.vertical, 16)
+        }
+    }
+
+    @ViewBuilder
+    private var resultsView: some View {
+        if fetchingResults {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .padding(.vertical)
+        } else {
+            if searchResults.count > 0 || isSearching {
+                Divider()
+                    .overlay { Color.white }
+                    .padding(.horizontal)
+
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    ForEach(searchResults, id: \.id) { track in
+                        if let href = track.songHref {
+                            Button {
+                                Task {
+                                    self.tappedTrack = track
+                                    await viewModel.playTrackHref(track)
+                                    self.tappedTrack = nil
+                                }
+                            } label: {
+                                HStack {
+                                    trackRow(track)
+
+                                    if self.tappedTrack == track {
+                                        Spacer()
+
+                                        ProgressView()
+                                            .progressViewStyle(.circular)
+                                            .padding(.trailing)
+                                    }
+                                }
+                            }
+                        } else {
+                            trackRow(track)
+                        }
+                    }
+                }
+                .padding(.vertical, 16)
+            } else {
+                Divider()
+                    .overlay { Color.white }
+                    .padding(.horizontal)
+
+                if #available(iOS 17.0, *) {
+                    ContentUnavailableView.search(text: searchText)
+                } else {
+                    VStack {
+                        Image(systemName: "exclamationmark.magnifyingglass")
+                            .imageScale(.large)
+                            .font(.title2)
+                            .padding(.bottom)
+
+                        Text("No results for \"\(searchText)\"")
+                            .font(.title3)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func trackRow(_ track: Track) -> some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: URL(string: track.artwork)) { phase in
+                switch phase {
+                    case .empty:
+                        Color.gray.opacity(0.3)
+                    case .success(let image):
+                        image.resizable()
+                    case .failure:
+                        Image(systemName: "music.note")
+                            .foregroundColor(.gray)
+                    @unknown default:
+                        EmptyView()
+                }
+            }
+            .frame(width: 50, height: 50)
+            .cornerRadius(4)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(track.title)
+                    .font(.system(size: 16, weight: .semibold))
+                Text(track.artist)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+
+//            Spacer()
+
+//            Text(formatDuration(track.duration))
+//                .font(.system(size: 14))
+//                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
     }
 
     private func formatDuration(_ duration: Double) -> String {
@@ -1157,7 +1285,7 @@ class MusicPlayerViewModel: ObservableObject {
             artworkUrl = artworkUrl.replacingOccurrences(of: "{w}", with: "1024")
             artworkUrl = artworkUrl.replacingOccurrences(of: "{h}", with: "1024")
 
-            var data: Data? = nil
+            let data: Data? = nil
 
 //            Task {
 //                let image = await self.loadImage(for: URL(string: artworkUrl)!)
@@ -1304,6 +1432,72 @@ class MusicPlayerViewModel: ObservableObject {
             } else {
                 throw NetworkError.decodingError
             }
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func searchSong(query: String) async -> [Track] {
+        print("Searching for: \(query)")
+        do {
+            let data = try await sendRequest(endpoint: "amapi/run-v3", method: "POST", body: ["path": "/v1/catalog/us/search?term=\(query)&types=songs"])
+
+            if let jsonDict = data as? [String: Any], let data = jsonDict["data"] as? [String: Any], let _results = data["results"] as? [String: Any] {
+                guard let songs = _results["songs"] as? [String: Any], let results = songs["data"] as? [[String: Any]] else {
+                    print("Couldn't decrypt stuff")
+                    return []
+                }
+
+                var searchResults: [Track] = []
+                for result in results {
+                    guard let attributes = result["attributes"] as? [String: Any], let artwork = attributes["artwork"] as? [String: Any] else {
+                        print("Oopsy, couldn't add search result")
+                        return []
+                    }
+
+                    searchResults
+                        .append(
+                            .init(
+                                id: attributes["isrc"] as! String,
+                                title: attributes["name"] as! String,
+                                artist: attributes["artistName"] as! String,
+                                album: attributes["albumName"] as! String,
+                                artwork: String((artwork["url"] as! String).replacing(/{(w|h)}/, with: "500")),
+                                duration: (Double(attributes["durationInMillis"] as? String ?? "0") ?? 0.0) / 1000,
+                                artworkData: Data(),
+                                songHref: result["href"] as! String
+                            )
+                        )
+                }
+
+                print("[searchSong] RETURNING \(searchResults.count) results")
+                return searchResults
+            } else {
+                throw NetworkError.decodingError
+            }
+        } catch {
+            handleError(error)
+        }
+
+        return []
+    }
+
+    func playHref(href: String) async {
+        print("Playing song using HREF")
+
+        do {
+            _ = try await sendRequest(endpoint: "playback/play-item-href", method: "POST", body: ["href": href])
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func playTrackHref(_ track: Track) async {
+        guard let href = track.songHref else { fatalError("No HREF in this Track") }
+        print("Playing TRACK song using HREF")
+
+        do {
+            _ = try await sendRequest(endpoint: "playback/play-item-href", method: "POST", body: ["href": href])
         } catch {
             handleError(error)
         }

@@ -22,7 +22,8 @@ struct NowPlayingLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.trailing) {
                     Image("Logo")
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     expandView(using: context, dynamicIsland: true)

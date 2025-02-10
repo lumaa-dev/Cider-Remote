@@ -11,6 +11,7 @@ struct Track: Codable, Equatable {
     let artwork: String
     let duration: Double
     var artworkData: Data
+    var songHref: String? = nil
 
     func getArtwork() async -> UIImage? {
         do {
