@@ -17,6 +17,7 @@ class Device: Identifiable, Codable, ObservableObject, Hashable {
     let connectionMethod: String
 
     @Published var isActive: Bool = false
+    @Published var isRefreshing: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case id, host, token, friendlyName, creationTime, version, platform, backend, isActive, connectionMethod, os
@@ -92,12 +93,13 @@ class Device: Identifiable, Codable, ObservableObject, Hashable {
 class DeviceListViewModel: ObservableObject {
     @Published var devices: [Device] = []
     @Published var isRefreshing: Bool = false
-    @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
     @Published var showingNamePrompt: Bool = false
     @Published var newDeviceInfo: ConnectionInfo?
     @Published var showingOldDeviceAlert: Bool = false
 
     @AppStorage("savedDevices") private var savedDevicesData: Data = Data()
+    @AppStorage("autoRefresh") private var autoRefresh: Bool = true
+    @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
 
     private var activityCheckTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
@@ -111,12 +113,26 @@ class DeviceListViewModel: ObservableObject {
         isRefreshing = true
         
         for device in devices {
+            device.isRefreshing = true
             checkDeviceActivity(device: device)
+            device.isRefreshing = false
         }
         
         // Simulate a slight delay to show the refresh indicator
         try? await Task.sleep(nanoseconds: 1_000_000_000)
-        
+        isRefreshing = false
+    }
+
+    @MainActor
+    func refreshDevice(_ device: Device) async {
+        isRefreshing = true
+
+        checkDeviceActivity(device: device)
+
+        // Simulate a slight delay to show the refresh indicator
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+
+        device.isRefreshing = false
         isRefreshing = false
     }
 
@@ -210,7 +226,7 @@ class DeviceListViewModel: ObservableObject {
         var request = URLRequest(url: url)
         request.addValue(device.token, forHTTPHeaderField: "apptoken")
 
-
+        device.isRefreshing = true
         self.isRefreshing = true
 
         URLSession.shared.dataTaskPublisher(for: request)
@@ -220,10 +236,12 @@ class DeviceListViewModel: ObservableObject {
             .sink { [weak self] completion in
                 switch completion {
                 case .finished:
+                    device.isRefreshing = false
                     self?.finishRefreshing()
                 case .failure(let error):
                     print("Error checking device activity: \(error.localizedDescription)")
                     self?.updateDeviceStatus(device: device, isActive: false)
+                    device.isRefreshing = false
                     self?.finishRefreshing()
                 }
             } receiveValue: { [weak self] httpResponse in
@@ -238,6 +256,7 @@ class DeviceListViewModel: ObservableObject {
         DispatchQueue.main.async {
             if let index = self.devices.firstIndex(where: { $0.id == device.id }) {
                 self.devices[index].isActive = isActive
+                self.devices[index].isRefreshing = false
                 self.objectWillChange.send()
             }
         }
@@ -250,6 +269,8 @@ class DeviceListViewModel: ObservableObject {
     }
 
     func startActivityChecking() {
+        guard autoRefresh else { return }
+
         stopActivityChecking() // Ensure we're not running multiple timers
 
         // Check first without delay
@@ -267,6 +288,8 @@ class DeviceListViewModel: ObservableObject {
     }
 
     func stopActivityChecking() {
+        guard autoRefresh else { return }
+        
         activityCheckTimer?.invalidate()
         activityCheckTimer = nil
     }
