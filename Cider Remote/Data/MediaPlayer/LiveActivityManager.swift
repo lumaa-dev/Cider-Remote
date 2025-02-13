@@ -5,7 +5,7 @@ import WidgetKit
 import ActivityKit
 
 class LiveActivityManager {
-    @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = true
+    @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = false
 
     static let shared: LiveActivityManager = .init()
 
