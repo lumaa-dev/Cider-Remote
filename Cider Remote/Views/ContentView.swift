@@ -9,16 +9,17 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var colorScheme = ColorSchemeManager()
-    @State private var showingSettings = false
     @StateObject private var deviceListViewModel = DeviceListViewModel()
+
+    @State private var showingSettings = false
 
     var body: some View {
         ZStack {
             NavigationStack {
                 DevicesView(showingSettings: $showingSettings)
             }
-            .accentColor(colorScheme.primaryColor)
-            
+            .tint(colorScheme.primaryColor)
+
             if deviceListViewModel.showingNamePrompt {
                 Color.black.opacity(0.4)
                     .edgesIgnoringSafeArea(.all)
@@ -44,21 +45,25 @@ struct ContentView: View {
         .environmentObject(colorScheme)
         .environmentObject(deviceListViewModel)
         .sheet(isPresented: $showingSettings) {
-            SettingsView(showingSettings: $showingSettings)
+            SettingsView()
         }
     }
 }
 
 struct DevicesView: View {
     @EnvironmentObject private var viewModel: DeviceListViewModel
+
+    @AppStorage("autoRefresh") private var autoRefresh: Bool = true
+
+    @Binding var showingSettings: Bool
+
     @State private var scannedCode: String?
     @State private var isShowingScanner = false
     @State private var isShowingGuide = false
-    @Binding var showingSettings: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            CiderHeaderView()
+            header
 
             List {
                 ForEach(viewModel.devices) { device in
@@ -74,8 +79,38 @@ struct DevicesView: View {
                             }
                         }
                     } else {
-                        OfflineDeviceRowView(device: device) {
-                            viewModel.deleteDevice(device: device)
+                        if autoRefresh {
+                            DeviceRowView(device: device)
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        viewModel.deleteDevice(device: device)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        } else {
+                            Button {
+                                Task {
+                                    await viewModel.refreshDevice(device)
+                                }
+                            } label: {
+                                HStack {
+                                    DeviceRowView(device: device)
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.forward")
+                                        .foregroundStyle(Color(uiColor: UIColor.tertiaryLabel))
+                                }
+                            }
+                            .tint(Color(uiColor: UIColor.label))
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    viewModel.deleteDevice(device: device)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                 }
@@ -89,6 +124,9 @@ struct DevicesView: View {
                 }
             }
             .listStyle(InsetGroupedListStyle())
+            .task {
+                await viewModel.refreshDevices()
+            }
             .refreshable {
                 await viewModel.refreshDevices()
             }
@@ -119,49 +157,21 @@ struct DevicesView: View {
             viewModel.stopActivityChecking()
         }
     }
-}
 
-struct OfflineDeviceRowView: View {
-    let device: Device
-    let deleteAction: () -> Void
+    var header: some View {
+        VStack(spacing: 8) {
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 60)
 
-    var body: some View {
-        HStack(spacing: 12) {
-            DeviceIconView(device: device)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(device.friendlyName)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .foregroundColor(.secondary)
-                Text("\(device.version) | \(device.platform)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                Text("Host: \(device.host)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-                .overlay(
-                    Text("Offline")
-                        .font(.caption)
-                        .padding(4)
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                        .offset(x: -8, y: -8),
-                    alignment: .topTrailing
-                )
-            StatusIndicator(isActive: device.isActive)
+            Text("Cider Devices")
+                .font(.title2)
+                .fontWeight(.bold)
         }
-        .swipeActions(edge: .trailing) {
-            Button(role: .destructive, action: deleteAction) {
-                Label("Delete", systemImage: "trash")
-            }
-        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Material.ultraThick)
     }
 }
 
@@ -269,44 +279,45 @@ struct FriendlyNamePromptView: View {
 
 struct LazyView<Content: View>: View {
     let build: () -> Content
+
     init(_ build: @autoclosure @escaping () -> Content) {
         self.build = build
     }
+
     var body: Content {
         build()
     }
 }
 
-struct CiderHeaderView: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Image("Logo")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 60)
-            
-            Text("Cider Devices")
-                .font(.title2)
-                .fontWeight(.bold)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Material.ultraThick)
-    }
-}
-
 struct StatusIndicator: View {
-    let isActive: Bool
+    let status: DeviceStatus
+
+    var color: Color {
+        switch status {
+            case .offline:
+                Color.red
+            case .online:
+                Color.green
+            case .refreshing:
+                Color.clear
+        }
+    }
 
     var body: some View {
-        Circle()
-            .fill(isActive ? Color.green : Color.red)
-            .frame(width: 12, height: 12)
-            .overlay(
-                Circle()
-                    .stroke(Color.white, lineWidth: 2)
-            )
-            .shadow(color: isActive ? Color.green.opacity(0.5) : Color.red.opacity(0.5), radius: 2)
+        if status != DeviceStatus.refreshing {
+            Circle()
+                .fill(color)
+                .frame(width: 12, height: 12)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: 2)
+                )
+                .shadow(color: color.opacity(0.5), radius: 2)
+        } else {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .frame(width: 12, height: 12)
+        }
     }
 }
 
@@ -407,6 +418,17 @@ struct DeviceIconView: View {
 struct DeviceRowView: View {
     @ObservedObject var device: Device
 
+    private var status: DeviceStatus {
+        if device.isActive && !device.isRefreshing {
+            return .online
+        } else if !device.isActive && !device.isRefreshing {
+            return .offline
+        } else if !device.isActive && device.isRefreshing {
+            return .refreshing
+        }
+        return .offline
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             DeviceIconView(device: device)
@@ -427,7 +449,7 @@ struct DeviceRowView: View {
 
             Spacer()
 
-            StatusIndicator(isActive: device.isActive)
+            StatusIndicator(status: self.status)
         }
         .padding(.vertical, 8)
     }
@@ -446,16 +468,10 @@ struct DeleteButton: View {
     }
 }
 
-struct RefreshingView: View {
-    let isRefreshing: Bool
-    
-    var body: some View {
-        if isRefreshing {
-            ProgressView("Refreshing...")
-                .progressViewStyle(.circular)
-                .padding()
-        }
-    }
+enum DeviceStatus {
+    case offline
+    case online
+    case refreshing
 }
 
 #Preview {
