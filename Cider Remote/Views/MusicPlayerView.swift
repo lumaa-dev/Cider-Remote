@@ -493,7 +493,7 @@ struct QueueView: View {
                             await viewModel.playFromQueue(track)
                         }
                     } label: {
-                        trackRow(track)
+                        trackRow(track, showDuration: true)
                     }
                 }
             }
@@ -564,7 +564,7 @@ struct QueueView: View {
     }
 
     @ViewBuilder
-    private func trackRow(_ track: Track) -> some View {
+    private func trackRow(_ track: Track, showDuration: Bool = false) -> some View {
         HStack(spacing: 12) {
             AsyncImage(url: URL(string: track.artwork)) { phase in
                 switch phase {
@@ -585,16 +585,22 @@ struct QueueView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.title)
                     .font(.system(size: 16, weight: .semibold))
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
                 Text(track.artist)
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
             }
 
-//            Spacer()
+            if showDuration {
+                Spacer()
 
-//            Text(formatDuration(track.duration))
-//                .font(.system(size: 14))
-//                .foregroundColor(.secondary)
+                Text(formatDuration(track.duration))
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 20)
