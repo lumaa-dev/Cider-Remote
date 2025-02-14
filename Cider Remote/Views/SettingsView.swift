@@ -123,14 +123,10 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
 
-                    Text("Made with ❤️ by cryptofyre")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-
                     NavigationLink {
                         ContributorsView()
                     } label: {
-                        Text("With the help of contributors")
+                        Text("Made with ❤️ by contributors")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
