@@ -99,6 +99,7 @@ struct MusicPlayerView: View {
         .onAppear {
             colorScheme.updateColorScheme(systemColorScheme)
             viewModel.startListening()
+
             Task {
                 await viewModel.initializePlayer()
                 await MainActor.run {
@@ -162,14 +163,6 @@ struct MusicPlayerView: View {
                 }
             }
         }
-    }
-}
-
-extension MusicPlayerViewModel {
-    func initializePlayer() async {
-        await getCurrentTrack()
-        await getCurrentVolume()
-        await fetchQueueItems()
     }
 }
 
@@ -1144,10 +1137,23 @@ class MusicPlayerViewModel: ObservableObject {
         socket?.disconnect()
     }
 
+    func initializePlayer() async {
+        await getCurrentTrack()
+        await getCurrentVolume()
+        await fetchQueueItems()
+    }
+
     func refreshCurrentTrack() {
         Task {
             await getCurrentTrack()
             await getCurrentVolume()
+
+            if let currentTrack, queueItems.first?.id == currentTrack.id {
+                queueItems.removeFirst()
+            } else {
+                await fetchQueueItems()
+            }
+
             reconnectSocketIfNeeded()
         }
     }
@@ -1310,13 +1316,15 @@ class MusicPlayerViewModel: ObservableObject {
                                  album: album,
                                  artwork: artworkUrl,
                                  duration: duration / 1000,
-                                 artworkData: data ?? Data())
+                                 artworkData: data ?? Data()
+            )
 
             if self.currentTrack != newTrack {
                 self.currentTrack = newTrack
                 self.needsColorUpdate = self.colorSchemeManager.useAdaptiveColors
                 self.lyrics = [] // Clear lyrics when track changes
                 Task {
+                    await self.updateQueue(newTrack: newTrack)
                     await self.fetchLyrics() // Fetch lyrics for the new track
                 }
             }
@@ -1336,6 +1344,15 @@ class MusicPlayerViewModel: ObservableObject {
 
         print("Updated currentTrack: \(String(describing: self.currentTrack))")
         print("isPlaying: \(self.isPlaying)")
+    }
+
+    private func updateQueue(newTrack: Track) async {
+        print("[QUEUE] smart update")
+        if newTrack.id == queueItems.first?.id { // newTrack is the next playing song in the queue
+            queueItems = Array(queueItems.dropFirst())
+        } else {
+            await fetchQueueItems()
+        }
     }
 
     private func getTrack(using info: [String: Any]) -> Track {
