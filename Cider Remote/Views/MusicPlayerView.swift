@@ -476,7 +476,7 @@ struct QueueView: View {
     private var queueView: some View {
         if viewModel.queueItems.count <= 0 {
             if #available(iOS 17.0, *) {
-                ContentUnavailableView("Queue unavailable", systemImage: "list.number", description: Text("The queue system will be integrated in Cider Remote later..."))
+                ContentUnavailableView("Queue empty", systemImage: "list.number", description: Text("Your Cider queue is empty"))
             } else {
                 VStack {
                     Image(systemName: "list.number")
@@ -484,16 +484,16 @@ struct QueueView: View {
                         .font(.title2)
                         .padding(.bottom)
 
-                    Text("Queue unavailable")
+                    Text("Queue empty")
                         .font(.title3)
 
-                    Text("The queue system will be integrated in Cider Remote later...")
+                    Text("Your Cider queue is empty")
                         .font(.caption)
                         .foregroundStyle(Color.gray)
                 }
             }
         } else {
-            LazyVStack(spacing: 12) {
+            LazyVStack(alignment: .leading, spacing: 12) {
                 ForEach(viewModel.queueItems, id: \.id) { track in
                     trackRow(track)
                 }
@@ -1072,7 +1072,7 @@ class MusicPlayerViewModel: ObservableObject {
         let socketURL = device.connectionMethod == "tunnel"
             ? "https://\(device.host)"
             : "http://\(device.host):10767"
-        manager = SocketManager(socketURL: URL(string: socketURL)!, config: [.log(true), .compress])
+        manager = SocketManager(socketURL: URL(string: socketURL)!, config: [.log(false), .compress])
         socket = manager?.defaultSocket
 
         setupSocketEventHandlers()
@@ -1105,7 +1105,7 @@ class MusicPlayerViewModel: ObservableObject {
                 return
             }
 
-            print("Received playback event: \(type)")
+//            print("Received playback event: \(type)")
             
             DispatchQueue.main.async {
                 switch type {
@@ -1160,13 +1160,23 @@ class MusicPlayerViewModel: ObservableObject {
     }
 
     func fetchQueueItems() async {
-        // Implement this method to fetch the queue items from the API
-        // For now, we'll use dummy data
-        queueItems = [
-//            Track(id: "1", title: "Stand By Me", artist: "Ben E. King", album: "Don't Play That Song", artwork: "https://example.com/artwork1.jpg", duration: 180),
-//            Track(id: "2", title: "Imagine", artist: "John Lennon", album: "Imagine", artwork: "https://example.com/artwork2.jpg", duration: 210),
-//            Track(id: "3", title: "What's Going On", artist: "Marvin Gaye", album: "What's Going On", artwork: "https://example.com/artwork3.jpg", duration: 195),
-        ]
+        guard let currentTrack else { print("[QUEUE] Need currentTrack to get current queue"); return }
+
+        print("Fetching current queue")
+        do {
+            let data = try await sendRequest(endpoint: "playback/queue")
+            if let jsonDict = data as? [[String: Any]] {
+                let attributes: [[String : Any]] = jsonDict.compactMap { $0["attributes"] as? [String : Any] }
+                let queue: [Track] = attributes.map { getTrack(using: $0) }
+
+                var queueItem: Queue = .init(tracks: queue)
+                queueItem.defineCurrent(track: currentTrack)
+
+                self.queueItems = queueItem.tracks
+            }
+        } catch {
+            handleError(error)
+        }
     }
 
     func getCurrentTrack() async {
@@ -1326,6 +1336,49 @@ class MusicPlayerViewModel: ObservableObject {
 
         print("Updated currentTrack: \(String(describing: self.currentTrack))")
         print("isPlaying: \(self.isPlaying)")
+    }
+
+    private func getTrack(using info: [String: Any]) -> Track {
+        // Extract ID from playParams
+        let id: String
+        if let playParams = info["playParams"] as? [String: Any],
+           let trackId = playParams["id"] as? String {
+            id = trackId
+        } else {
+            id = info["id"] as? String ?? ""
+        }
+
+        let title = info["name"] as? String ?? ""
+        let artist = info["artistName"] as? String ?? ""
+        let album = info["albumName"] as? String ?? ""
+        let duration = info["durationInMillis"] as? Double ?? 0
+
+        if let artwork = info["artwork"] as? [String: Any],
+           var artworkUrl = artwork["url"] as? String {
+            // Replace placeholders in artwork URL
+            artworkUrl = artworkUrl.replacingOccurrences(of: "{w}", with: "1024")
+            artworkUrl = artworkUrl.replacingOccurrences(of: "{h}", with: "1024")
+
+            let data: Data? = nil
+
+            return Track(id: id,
+                         title: title,
+                         artist: artist,
+                         album: album,
+                         artwork: artworkUrl,
+                         duration: duration / 1000,
+                         artworkData: data ?? Data()
+            )
+        } else {
+            return Track(id: id,
+                         title: title,
+                         artist: artist,
+                         album: album,
+                         artwork: "",
+                         duration: duration / 1000,
+                         artworkData: Data()
+            )
+        }
     }
 
     func getCurrentVolume() async {
@@ -1541,7 +1594,7 @@ class MusicPlayerViewModel: ObservableObject {
         return await self.loadImage(for: url)
     }
 
-    private func sendRequest(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> Any {
+    private func sendRequest(endpoint: String, method: String = "GET", body: [String: Any]? = nil) async throws -> Any {
         let baseURL = device.connectionMethod == "tunnel"
             ? "https://\(device.host)"
             : "http://\(device.host):10767"
