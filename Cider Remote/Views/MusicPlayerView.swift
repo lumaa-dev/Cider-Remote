@@ -488,7 +488,13 @@ struct QueueView: View {
         } else {
             LazyVStack(alignment: .leading, spacing: 12) {
                 ForEach(viewModel.queueItems, id: \.id) { track in
-                    trackRow(track)
+                    Button {
+                        Task {
+                            await viewModel.playFromQueue(track)
+                        }
+                    } label: {
+                        trackRow(track)
+                    }
                 }
             }
             .padding(.vertical, 16)
@@ -1018,6 +1024,7 @@ class MusicPlayerViewModel: ObservableObject {
     /// Everything Live Activity for the playing song
     @Published var liveActivity: LiveActivityManager = LiveActivityManager.shared
     @Published var queueItems: [Track] = []
+    @Published var sourceQueue: Queue?
     @Published var currentTrack: Track?
     @Published var isPlaying: Bool = false
     @Published var currentTime: Double = 0
@@ -1176,8 +1183,9 @@ class MusicPlayerViewModel: ObservableObject {
                 let queue: [Track] = attributes.map { getTrack(using: $0) }
 
                 var queueItem: Queue = .init(tracks: queue)
-                queueItem.defineCurrent(track: currentTrack)
+                self.sourceQueue = queueItem
 
+                queueItem.defineCurrent(track: currentTrack)
                 self.queueItems = queueItem.tracks
             }
         } catch {
@@ -1352,6 +1360,18 @@ class MusicPlayerViewModel: ObservableObject {
             queueItems = Array(queueItems.dropFirst())
         } else {
             await fetchQueueItems()
+        }
+    }
+
+    func playFromQueue(_ track: Track) async {
+        guard let sourceQueue, let index = sourceQueue.tracks.firstIndex(where: { $0.id == track.id }) else { return }
+        print("[QUEUE] play from queue")
+
+        do {
+            let data = try await sendRequest(endpoint: "playback/queue/change-to-index", method: "POST", body: ["index" : index])
+            await updateQueue(newTrack: track)
+        } catch {
+            handleError(error)
         }
     }
 
