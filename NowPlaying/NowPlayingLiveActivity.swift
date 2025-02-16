@@ -99,6 +99,7 @@ struct NowPlayingLiveActivity: Widget {
                     .font(.body.bold())
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+                    .foregroundStyle(Color.white)
 
                 Text(context.state.trackInfo.artist)
                     .font(.caption)
@@ -113,6 +114,7 @@ struct NowPlayingLiveActivity: Widget {
             // TODO: Button to pause/play using AppIntent
             Image(systemName: "waveform")
                 .font(.title2)
+                .foregroundStyle(Color.white)
         }
         .padding(.horizontal)
         .padding(.vertical, 7.5)
