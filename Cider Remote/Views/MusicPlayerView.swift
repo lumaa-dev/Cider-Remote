@@ -816,30 +816,12 @@ struct PlayerControlsView: View {
 
                 Spacer()
 
-                additionalActions
+                AdditionalControls(viewModel: viewModel, lightDarkColor: lightDarkColor, buttonSize: buttonSize)
             }
             .frame(width: min(geometry.size.width * (isIPad ? 0.8 : 0.95), 500))
             .font(.system(size: isIPad ? 22 : 20))  // Slightly reduced font size for iPad
         }
         .padding(.top, isIPad ? 20 : 0)  // Add padding at the top
-    }
-
-    @ViewBuilder
-    private var additionalActions: some View {
-        Menu {
-            Button {
-                Task {
-                    await viewModel.toggleAddToLibrary()
-                }
-            } label: {
-                Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
-            }
-        } label: {
-            Image(systemName: "ellipsis")
-                .foregroundColor(lightDarkColor)
-                .frame(width: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0), height: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0))
-        }
-        .buttonStyle(SpringyButtonStyle())
     }
 
     private func calculateButtonSpacing() -> CGFloat {
@@ -859,6 +841,35 @@ struct PlayerControlsView: View {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+struct AdditionalControls: View {
+    let viewModel: MusicPlayerViewModel
+    let lightDarkColor: Color
+    let buttonSize: ElementSize
+
+    init(viewModel: MusicPlayerViewModel, lightDarkColor: Color, buttonSize: ElementSize) {
+        self.viewModel = viewModel
+        self.lightDarkColor = lightDarkColor
+        self.buttonSize = buttonSize
+    }
+
+    var body: some View {
+        Menu {
+            Button {
+                Task {
+                    await viewModel.toggleAddToLibrary()
+                }
+            } label: {
+                Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .foregroundColor(lightDarkColor)
+                .frame(width: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0), height: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0))
+        }
+        .buttonStyle(SpringyButtonStyle())
     }
 }
 
