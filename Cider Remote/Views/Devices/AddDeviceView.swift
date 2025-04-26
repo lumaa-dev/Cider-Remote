@@ -8,6 +8,8 @@ struct AddDeviceView: View {
     @Binding var scannedCode: String?
     @ObservedObject var viewModel: DeviceListViewModel
 
+    @State private var jsonTxt: String = ""
+
     var body: some View {
         Button(action: {
             isShowingScanner = true
@@ -15,6 +17,22 @@ struct AddDeviceView: View {
             Label("Add New Cider Device", systemImage: "plus.circle")
         }
         .sheet(isPresented: $isShowingScanner) {
+#if DEBUG
+            VStack {
+                Text(String("Enter the JSON below:"))
+                TextField(String("{\"address\":\"123.456.7.89\",\"token\":\"abcdefghijklmnopqrstuvwx\",\"method\":\"lan\",\"initialData\":{\"version\":\"2.0.3\",\"platform\":\"genten\",\"os\":\"darwin\"}}"), text: $jsonTxt)
+                    .padding()
+                    .textFieldStyle(.roundedBorder)
+
+                Button {
+                    viewModel.fetchDevices(from: jsonTxt)
+                    isShowingScanner = false
+                } label: {
+                    Text(String("Fetch device"))
+                }
+                .buttonStyle(.borderedProminent)
+            }
+#else
             QRScannerView(scannedCode: $scannedCode)
                 .overlay(alignment: .top) {
                     Text("Scan the Cider QR code")
@@ -25,6 +43,7 @@ struct AddDeviceView: View {
                         .clipShape(.rect(cornerRadius: 15.5))
                         .padding(.top, 22.5)
                 }
+#endif
         }
         .onChange(of: scannedCode) { newValue in
             if let code = newValue {
@@ -34,8 +53,6 @@ struct AddDeviceView: View {
         }
     }
 }
-
-// MARK: QR Code stuff
 
 class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     var captureSession: AVCaptureSession!
