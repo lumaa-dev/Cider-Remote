@@ -12,26 +12,13 @@ struct NowPlayingLiveActivity: Widget {
                 .activitySystemActionForegroundColor(Color.white)
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded UI goes here.  Compose the expanded UI through
-                // various regions, like leading/trailing/center/bottom
-                DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: "waveform")
-                        .font(.body)
-                        .foregroundStyle(Color.pink)
-                }
-                DynamicIslandExpandedRegion(.trailing) {
-                    Image("Logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20, alignment: .trailing)
-                }
                 DynamicIslandExpandedRegion(.bottom) {
                     expandView(using: context, dynamicIsland: true)
                 }
             } compactLeading: {
-                Image(systemName: "waveform")
-                    .font(.body)
-                    .foregroundStyle(Color.pink)
+                Image("Logo")
+                    .resizable()
+                    .scaledToFill()
 //                if let artwork = context.state.getArtwork() {
 //                    Image(uiImage: artwork)
 //                        .resizable()
@@ -43,9 +30,9 @@ struct NowPlayingLiveActivity: Widget {
 //                        .frame(width: 10, height: 10, alignment: .center)
 //                }
             } compactTrailing: {
-                Image("Logo")
-                    .resizable()
-                    .scaledToFill()
+                Image(systemName: "waveform")
+                    .font(.body)
+                    .foregroundStyle(Color.pink)
             } minimal: {
 //                if let artwork = context.state.getArtwork() {
 //                    Image(uiImage: artwork)
