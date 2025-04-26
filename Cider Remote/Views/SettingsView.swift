@@ -119,7 +119,7 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Text("© Cider Collective 2024")
+                    Text("© Cider Collective 2024-2025")
                         .font(.footnote)
                         .foregroundColor(.secondary)
 
