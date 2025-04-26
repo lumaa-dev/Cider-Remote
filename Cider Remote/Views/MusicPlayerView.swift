@@ -619,10 +619,12 @@ struct QueueView: View {
             if showDuration {
                 Spacer()
 
+#if DEBUG
                 if let trackIndex = self.viewModel.sourceQueue?.firstIndex(of: track), trackIndex >= 0 {
                     Text("\(trackIndex)")
                         .font(.caption.bold())
                 }
+#endif
 
                 Text(formatDuration(track.duration))
                     .font(.system(size: 14))
