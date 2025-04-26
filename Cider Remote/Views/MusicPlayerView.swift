@@ -500,6 +500,12 @@ struct QueueView: View {
                     sourceQueue.remove(set: set)
 
                     viewModel.sourceQueue = sourceQueue
+
+                    Task {
+                        for i in set {
+                            await viewModel.removeQueue(index: i)
+                        }
+                    }
                 }
                 .onMove { from, to in
                     guard var sourceQueue = viewModel.sourceQueue, let firstIndex = from.first else { return }
@@ -1404,13 +1410,24 @@ class MusicPlayerViewModel: ObservableObject {
     func moveQueue(from startIndex: Int, to destinationIndex: Int) async {
         guard let sourceQueue, startIndex != destinationIndex else { return }
         do {
-            _ = try await sendRequest(
-                endpoint: "playback/queue/move-to-position",
-                method: "POST",
-                body: ["startIndex" : startIndex + sourceQueue.offset, "destinationIndex": destinationIndex + sourceQueue.offset]
+            _ = try await sendRequest(endpoint: "playback/queue/move-to-position",
+                                      method: "POST",
+                                      body: ["startIndex" : startIndex + sourceQueue.offset, "destinationIndex": destinationIndex + sourceQueue.offset]
             )
             try? await Task.sleep(nanoseconds: 500_000_000) // we don't wait, then the *fetchQueueItems* will error
             await fetchQueueItems()
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func removeQueue(index: Int) async {
+        guard let sourceQueue else { return }
+        do {
+            _ = try await sendRequest(endpoint: "playback/queue/remove-by-index",
+                                      method: "POST",
+                                      body: ["index": index + sourceQueue.offset]
+            )
         } catch {
             handleError(error)
         }
