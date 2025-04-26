@@ -17,6 +17,15 @@ struct ContentView: View {
         ZStack {
             NavigationStack {
                 DevicesView()
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button {
+                                self.showingSettings.toggle()
+                            } label: {
+                                Image(systemName: "gear")
+                            }
+                        }
+                    }
             }
             .tint(colorScheme.primaryColor)
 

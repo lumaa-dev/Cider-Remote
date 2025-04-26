@@ -82,20 +82,17 @@ struct DevicesView: View {
             .refreshable {
                 await viewModel.refreshDevices()
             }
+#if DEBUG
+            Label("This is a DEBUG version.", systemImage: "gearshape.2.fill")
+                .foregroundColor(.orange)
+                .accessibility(label: Text("Debug software"))
+#else
             Label("This software is in BETA.", systemImage: "hammer.circle.fill")
                 .foregroundColor(.gray)
                 .accessibility(label: Text("Beta software"))
+#endif
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "gear")
-                }
-            }
-        }
         .navigationDestination(for: Device.self) { device in
             LazyView(MusicPlayerView(device: device))
         }
