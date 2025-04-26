@@ -179,7 +179,8 @@ struct LyricsView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                BlurView(style: .systemThinMaterial)
+                Rectangle()
+                    .fill(Material.thin)
                     .edgesIgnoringSafeArea(.all)
 
                 VStack(spacing: 0) {
@@ -375,20 +376,6 @@ struct LyricLine: Identifiable, Equatable {
     let isMainLyric: Bool
 }
 
-struct BlurView: UIViewRepresentable {
-    let style: UIBlurEffect.Style
-
-    func makeUIView(context: Context) -> UIView {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
-        DispatchQueue.main.async {
-            view.superview?.superview?.backgroundColor = .clear
-        }
-        return view
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {}
-}
-
 struct QueueView: View {
     @Binding var isShowing: Bool
     @ObservedObject var viewModel: MusicPlayerViewModel
@@ -403,7 +390,8 @@ struct QueueView: View {
     var body: some View {
         ZStack {
             // Blurred background
-            BlurView(style: .systemThinMaterial)
+            Rectangle()
+                .fill(Material.thin)
                 .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
@@ -429,7 +417,7 @@ struct QueueView: View {
                 .padding(.bottom, 10)
 
                 // Queue list
-                ScrollView {
+                List {
                     TextField(text: $searchText, prompt: Text("Search")) {
                         EmptyView()
                     }
@@ -440,7 +428,7 @@ struct QueueView: View {
                     .padding(.vertical, 8.0)
                     .background(Material.bar)
                     .clipShape(Capsule())
-                    .padding()
+                    .padding(.horizontal)
                     .scrollDismissesKeyboard(.immediately)
                     .onSubmit {
                         Task {
@@ -449,17 +437,25 @@ struct QueueView: View {
                             fetchingResults = false
                         }
                     }
+                    .ciderRowOptimized()
 
                     if !isSearching && searchText.isEmpty {
                         Divider()
                             .overlay { Color.white }
                             .padding(.horizontal)
+                            .ciderRowOptimized()
 
-                        queueView
+                        Section {
+                            queueView
+                                .ciderRowOptimized()
+                        }
+                        .ciderOptimized()
                     } else {
                         resultsView
+                            .ciderRowOptimized()
                     }
                 }
+                .ciderOptimized()
             }
         }
         .foregroundColor(.primary)
@@ -486,7 +482,8 @@ struct QueueView: View {
                 }
             }
         } else {
-            LazyVStack(alignment: .leading, spacing: 12) {
+//            LazyVStack(alignment: .leading, spacing: 12) {
+//            List {
                 ForEach(viewModel.queueItems, id: \.id) { track in
                     Button {
                         Task {
@@ -494,10 +491,29 @@ struct QueueView: View {
                         }
                     } label: {
                         trackRow(track, showDuration: true)
+                            .ciderRowOptimized()
                     }
                 }
+                .onDelete { set in
+                    guard var sourceQueue = viewModel.sourceQueue else { return }
+                    viewModel.queueItems.remove(atOffsets: set)
+                    sourceQueue.remove(set: set)
+
+                    viewModel.sourceQueue = sourceQueue
+                }
+                .onMove { from, to in
+                    guard var sourceQueue = viewModel.sourceQueue, let firstIndex = from.first else { return }
+                    viewModel.queueItems.move(fromOffsets: from, toOffset: to)
+                    sourceQueue.move(from: from, to: to)
+
+                    viewModel.sourceQueue = sourceQueue
+
+                    Task {
+                        await viewModel.moveQueue(from: firstIndex, to: to)
+                    }
+//                }
             }
-            .padding(.vertical, 16)
+//            .frame(minHeight: 500, maxHeight: .infinity)
         }
     }
 
@@ -515,7 +531,7 @@ struct QueueView: View {
 
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(searchResults, id: \.id) { track in
-                        if let href = track.songHref {
+                        if track.songHref != nil {
                             Button {
                                 Task {
                                     self.tappedTrack = track
@@ -596,6 +612,11 @@ struct QueueView: View {
 
             if showDuration {
                 Spacer()
+
+                if let trackIndex = self.viewModel.sourceQueue?.firstIndex(of: track), trackIndex >= 0 {
+                    Text("\(trackIndex)")
+                        .font(.caption.bold())
+                }
 
                 Text(formatDuration(track.duration))
                     .font(.system(size: 14))
@@ -693,10 +714,14 @@ struct TrackInfoView: View {
 }
 
 struct PlayerControlsView: View {
-    @ObservedObject var viewModel: MusicPlayerViewModel
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    @State private var isDragging = false
     @Environment(\.colorScheme) var systemColorScheme
+
+    @EnvironmentObject var colorScheme: ColorSchemeManager
+
+    @ObservedObject var viewModel: MusicPlayerViewModel
+
+    @State private var isDragging = false
+
     let buttonSize: ElementSize
     let geometry: GeometryProxy
 
@@ -785,32 +810,7 @@ struct PlayerControlsView: View {
 
                 Spacer()
 
-                Menu {
-                    Button(action: {
-                        Task {
-                            await viewModel.toggleAddToLibrary()
-                        }
-                    }) {
-                        Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
-                    }
-
-                    Button(action: {
-                        // Add action for showing lyrics
-                    }) {
-                        Label("Show Lyrics", systemImage: "quote.bubble")
-                    }
-
-                    Button(action: {
-                        // Add action for showing queue
-                    }) {
-                        Label("Show Queue", systemImage: "list.bullet")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(lightDarkColor)
-                        .frame(width: buttonSize.dimension * scale, height: buttonSize.dimension * scale)
-                }
-                .buttonStyle(SpringyButtonStyle())
+                additionalActions
             }
             .frame(width: min(geometry.size.width * (isIPad ? 0.8 : 0.95), 500))
             .font(.system(size: isIPad ? 22 : 20))  // Slightly reduced font size for iPad
@@ -818,11 +818,30 @@ struct PlayerControlsView: View {
         .padding(.top, isIPad ? 20 : 0)  // Add padding at the top
     }
 
+    @ViewBuilder
+    private var additionalActions: some View {
+        Menu {
+            Button {
+                Task {
+                    await viewModel.toggleAddToLibrary()
+                }
+            } label: {
+                Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .foregroundColor(lightDarkColor)
+                .frame(width: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0), height: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0))
+        }
+        .buttonStyle(SpringyButtonStyle())
+    }
+
     private func calculateButtonSpacing() -> CGFloat {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         let totalWidth = min(geometry.size.width * (isIPad ? 0.5 : 0.6), 300)
         let buttonWidths = buttonSize.dimension * 1.2 * 2 + buttonSize.dimension * 1.8
         let remainingSpace = totalWidth - buttonWidths
+
         return remainingSpace / 4 // Divide by 4 to create 3 equal spaces between buttons
     }
 
@@ -989,8 +1008,9 @@ extension Image {
 }
 
 struct BlurredBackgroundView: View {
-    let colors: [Color]
     @Environment(\.colorScheme) var colorScheme
+
+    let colors: [Color]
 
     var body: some View {
         ZStack {
@@ -1189,9 +1209,9 @@ class MusicPlayerViewModel: ObservableObject {
                 let queue: [Track] = attributes.map { getTrack(using: $0) }
 
                 var queueItem: Queue = .init(tracks: queue)
-                self.sourceQueue = queueItem
-
                 queueItem.defineCurrent(track: currentTrack)
+
+                self.sourceQueue = queueItem // after defining offset
                 self.queueItems = queueItem.tracks
             }
         } catch {
@@ -1374,8 +1394,23 @@ class MusicPlayerViewModel: ObservableObject {
         print("[QUEUE] play from queue")
 
         do {
-            let data = try await sendRequest(endpoint: "playback/queue/change-to-index", method: "POST", body: ["index" : index])
+            _ = try await sendRequest(endpoint: "playback/queue/change-to-index", method: "POST", body: ["index" : index])
             await updateQueue(newTrack: track)
+        } catch {
+            handleError(error)
+        }
+    }
+
+    func moveQueue(from startIndex: Int, to destinationIndex: Int) async {
+        guard let sourceQueue, startIndex != destinationIndex else { return }
+        do {
+            _ = try await sendRequest(
+                endpoint: "playback/queue/move-to-position",
+                method: "POST",
+                body: ["startIndex" : startIndex + sourceQueue.offset, "destinationIndex": destinationIndex + sourceQueue.offset]
+            )
+            try? await Task.sleep(nanoseconds: 500_000_000) // we don't wait, then the *fetchQueueItems* will error
+            await fetchQueueItems()
         } catch {
             handleError(error)
         }
@@ -1658,6 +1693,7 @@ class MusicPlayerViewModel: ObservableObject {
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
+//        print("Response raw: \(String(data: data, encoding: .utf8) ?? "[No data]")")
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -1671,9 +1707,10 @@ class MusicPlayerViewModel: ObservableObject {
 
         do {
             let json = try JSONSerialization.jsonObject(with: data, options: [])
-            print("Received data: \(json)")
+//            print("Received data: \(json)")
             return json
         } catch {
+            print(error)
             throw NetworkError.decodingError
         }
     }
