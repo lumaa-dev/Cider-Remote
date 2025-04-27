@@ -17,56 +17,7 @@ struct LyricsView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Rectangle()
-                    .fill(Material.thin)
-                    .edgesIgnoringSafeArea(.all)
-
                 VStack(spacing: 0) {
-                    // Header with Artwork
-                    HStack(spacing: 16) {
-                        if let currentTrack = viewModel.currentTrack {
-                            AsyncImage(url: URL(string: currentTrack.artwork)) { phase in
-                                switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                    case .failure:
-                                        Image(systemName: "music.note")
-                                            .foregroundStyle(.gray)
-                                    @unknown default:
-                                        EmptyView()
-                                }
-                            }
-                            .frame(width: 64, height: 64)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(currentTrack.title)
-                                    .font(.system(size: 18, weight: .bold))
-                                    .lineLimit(1)
-                                Text(currentTrack.artist)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
-                        Spacer()
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                                .font(.system(size: 28))
-                        }
-                        .padding(.trailing, 10)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
-
                     Divider().padding(.horizontal, 20)
 
 

@@ -50,7 +50,7 @@ struct PlayerControlsView: View {
                     }
                 }) {
                     Image(systemName: viewModel.isLiked ? "star.fill" : "star")
-                        .foregroundStyle(viewModel.isLiked ? Color(hex: "#fa2f48") : lightDarkColor)
+                        .foregroundStyle(viewModel.isLiked ? Color(hex: "#fa2f48") : Color.white.opacity(0.6))
                         .frame(width: buttonSize.dimension * scale, height: buttonSize.dimension * scale)
                 }
                 .buttonStyle(SpringyButtonStyle())
@@ -65,7 +65,7 @@ struct PlayerControlsView: View {
                     }) {
                         Image(systemName: "backward.fill")
                             .font(.system(size: buttonSize.fontSize * 1.2 * scale))
-                            .foregroundStyle(lightDarkColor)
+                            .foregroundStyle(Color.white.opacity(0.6))
                             .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
@@ -75,9 +75,9 @@ struct PlayerControlsView: View {
                             await viewModel.togglePlayPause()
                         }
                     }) {
-                        Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: buttonSize.fontSize * 2.5 * scale))
-                            .foregroundStyle(lightDarkColor)
+                            .foregroundStyle(Color.white.opacity(0.6))
                             .frame(width: buttonSize.dimension * 1.8 * scale, height: buttonSize.dimension * 1.8 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
@@ -89,7 +89,7 @@ struct PlayerControlsView: View {
                     }) {
                         Image(systemName: "forward.fill")
                             .font(.system(size: buttonSize.fontSize * 1.2 * scale))
-                            .foregroundStyle(lightDarkColor)
+                            .foregroundStyle(Color.white.opacity(0.6))
                             .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
@@ -148,10 +148,11 @@ struct AdditionalControls: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .foregroundStyle(lightDarkColor)
+                .foregroundStyle(Color.white.opacity(0.6))
                 .frame(width: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0), height: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0))
         }
         .buttonStyle(SpringyButtonStyle())
+        .tint(Color.white)
     }
 }
 
@@ -190,8 +191,6 @@ struct AdditionalControlsView: View {
 
     var body: some View {
         HStack(spacing: 30) {
-            Spacer()
-
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.5)) {
                     showLyrics.toggle()
@@ -199,9 +198,12 @@ struct AdditionalControlsView: View {
             }) {
                 Image(systemName: "quote.bubble")
                     .font(.system(size: 20))
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .foregroundStyle(Color.white.opacity(0.6))
             }
             .buttonStyle(ScaleButtonStyle())
+            .padding(.horizontal, 40)
+
+            Spacer()
 
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.5)) {
@@ -210,13 +212,12 @@ struct AdditionalControlsView: View {
             }) {
                 Image(systemName: "list.bullet")
                     .font(.system(size: 20))
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .foregroundStyle(Color.white.opacity(0.6))
             }
             .buttonStyle(ScaleButtonStyle())
-
-            Spacer()
+            .padding(.horizontal, 40)
         }
-        .frame(height: 44)
-        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity)
+        .padding(10)
     }
 }

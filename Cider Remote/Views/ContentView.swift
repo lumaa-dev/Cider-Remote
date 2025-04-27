@@ -27,7 +27,7 @@ struct ContentView: View {
                         }
                     }
             }
-            .tint(colorScheme.primaryColor)
+            .tint(Color.cider)
 
             if deviceListViewModel.showingNamePrompt {
                 FriendlyNamePromptView()

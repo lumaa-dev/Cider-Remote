@@ -23,9 +23,8 @@ struct MusicPlayerView: View {
     @StateObject private var viewModel: MusicPlayerViewModel
 
     @State private var currentImage: UIImage?
-    @State private var showingLyrics = false
-    @State private var showingQueue = false
     @State private var isLoading = true
+    @State private var isCompact = false
 
     init(device: Device) {
         self.device = device
@@ -38,9 +37,17 @@ struct MusicPlayerView: View {
             let scale: CGFloat = isIPad ? 1.2 : 1.0
             
             ZStack {
+                Color.black
+                    .ignoresSafeArea()
+
                 if let currentImage {
                     BlurredImageView(image: Image(uiImage: currentImage))
                         .ignoresSafeArea()
+                        .overlay {
+                            Color.black
+                                .opacity(0.5)
+                                .ignoresSafeArea()
+                        }
                 } else {
                     LinearGradient(colors: [Color.gray.opacity(0.7), Color.gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
                         .blur(radius: 60)
@@ -53,27 +60,58 @@ struct MusicPlayerView: View {
                 } else {
                     VStack(spacing: 20 * scale) {
                         if let currentTrack = viewModel.currentTrack {
-                            TrackInfoView(track: currentTrack, onImageLoaded: { image in
-                                currentImage = image
-                                colorScheme.updateColors(from: image)
-                                viewModel.needsColorUpdate = false
-                            }, albumArtSize: albumArtSize, geometry: geometry)
-                            .scaleEffect(scale)
-
-                            VStack(spacing: 15 * scale) {
-                                PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
-                                    .scaleEffect(scale)
-                                VolumeControlView(viewModel: viewModel)
-                                    .padding(.horizontal)
-                                AdditionalControlsView(
-                                    buttonSize: buttonSize,
-                                    geometry: geometry,
-                                    showLyrics: $showingLyrics,
-                                    showQueue: $showingQueue
-                                )
+                            HStack {
+                                TrackInfoView(track: currentTrack, onImageLoaded: { image in
+                                    currentImage = image
+                                    colorScheme.updateColors(from: image)
+                                    viewModel.needsColorUpdate = false
+                                }, albumArtSize: albumArtSize, geometry: geometry, isCompact: $isCompact)
                                 .scaleEffect(scale)
+
+                                if isCompact {
+                                    Spacer()
+
+                                    Button {
+                                        withAnimation(.spring) {
+                                            withAnimation(.spring) {
+                                                viewModel.showingQueue = false
+                                                viewModel.showingLyrics = false
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(Color.white.opacity(0.4))
+                                            .font(.system(size: 28))
+                                    }
+                                }
                             }
-                            .padding(.horizontal, isIPad ? 40 : 20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+
+                            if isCompact {
+                                if viewModel.showingQueue {
+                                    QueueView(viewModel: viewModel)
+                                } else if viewModel.showingLyrics {
+                                    LyricsView(viewModel: viewModel)
+                                }
+                            } else {
+                                VStack(spacing: 15 * scale) {
+                                    PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+                                        .scaleEffect(scale)
+
+                                    VolumeControlView(viewModel: viewModel)
+                                        .padding(.horizontal)
+
+                                    AdditionalControlsView(
+                                        buttonSize: buttonSize,
+                                        geometry: geometry,
+                                        showLyrics: $viewModel.showingLyrics,
+                                        showQueue: $viewModel.showingQueue
+                                    )
+                                    .scaleEffect(scale)
+                                }
+                                .padding(.horizontal, isIPad ? 40 : 20)
+                            }
                         } else {
                             Text("No track playing")
                                 .font(.title)
@@ -82,20 +120,17 @@ struct MusicPlayerView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.bottom, geometry.safeAreaInsets.bottom)
-                    .padding(.top, isIPad ? 50 : 30)
+                    .padding(.top, isIPad ? (isCompact ? 0 : 50) : (isCompact ? 0 : 30))
                 }
             }
+            .tint(colorScheme.primaryColor)
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
         .edgesIgnoringSafeArea(.horizontal)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(isCompact)
         .environmentObject(colorScheme)
-        .fullScreenCover(isPresented: $showingLyrics) {
-            LyricsView(viewModel: viewModel)
-        }
-        .fullScreenCover(isPresented: $showingQueue) {
-            QueueView(viewModel: viewModel)
-        }
+        .environment(\.colorScheme, ColorScheme.dark)
         .onAppear {
             colorScheme.updateColorScheme(systemColorScheme)
             viewModel.startListening()
@@ -132,6 +167,16 @@ struct MusicPlayerView: View {
         .onChange(of: viewModel.needsColorUpdate) { needsUpdate in
             if needsUpdate && colorScheme.useAdaptiveColors {
                 updateColors()
+            }
+        }
+        .onChange(of: viewModel.showingQueue) { newShow in
+            withAnimation(.spring) {
+                self.isCompact = newShow
+            }
+        }
+        .onChange(of: viewModel.showingLyrics) { newShow in
+            withAnimation(.spring) {
+                self.isCompact = newShow
             }
         }
     }
@@ -305,6 +350,8 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var needsColorUpdate: Bool = false
     @Published var showLibraryPopup = false
     @Published var showFavoritePopup = false
+    @Published var showingLyrics = false
+    @Published var showingQueue = false
     @Published var errorMessage: String?
     @Published var lyrics: [LyricLine] = []
 
@@ -638,7 +685,11 @@ class MusicPlayerViewModel: ObservableObject {
         print("[QUEUE] play from queue")
 
         do {
-            _ = try await sendRequest(endpoint: "playback/queue/change-to-index", method: "POST", body: ["index" : index])
+            _ = try await sendRequest(
+                endpoint: "playback/queue/change-to-index",
+                method: "POST",
+                body: ["index" : index + sourceQueue.offset]
+            )
             await updateQueue(newTrack: track)
         } catch {
             handleError(error)

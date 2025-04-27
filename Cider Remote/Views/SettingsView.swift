@@ -55,17 +55,6 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(Color(uiColor: UIColor.label))
                     .pickerStyle(.menu)
-
-                    Picker(selection: $albumArtSize) {
-                        ForEach(ElementSize.allCases) { size in
-                            Text(size.rawValue.capitalized)
-                                .id(size)
-                        }
-                    } label: {
-                        Label("Album Art Size", systemImage: "photo.fill")
-                    }
-                    .foregroundStyle(Color(uiColor: UIColor.label))
-                    .pickerStyle(.menu)
                 }
 
                 Section(header: Text("Advanced")) {

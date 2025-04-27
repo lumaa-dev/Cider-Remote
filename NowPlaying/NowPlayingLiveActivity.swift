@@ -9,7 +9,7 @@ struct NowPlayingLiveActivity: Widget {
         ActivityConfiguration(for: NowPlayingAttributes.self) { context in
             expandView(using: context)
                 .activityBackgroundTint(Color.black)
-                .activitySystemActionforegroundStyle(Color.white)
+                .activitySystemActionForegroundColor(Color.white)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.bottom) {

@@ -17,72 +17,45 @@ struct QueueView: View {
 
     var body: some View {
         ZStack {
-            // Blurred background
-            Rectangle()
-                .fill(Material.thin)
-                .edgesIgnoringSafeArea(.all)
-
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Text("Up Next")
-                        .font(.system(size: 22, weight: .bold))
-
-                    Spacer()
-
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                            .font(.system(size: 28))
+            List {
+                TextField(text: $searchText, prompt: Text("Search")) {
+                    EmptyView()
+                }
+                .focused($isSearching)
+                .labelsHidden()
+                .submitLabel(.search)
+                .padding(.horizontal)
+                .padding(.vertical, 8.0)
+                .background(Material.bar)
+                .clipShape(Capsule())
+                .padding(.horizontal)
+                .scrollDismissesKeyboard(.immediately)
+                .onSubmit {
+                    Task {
+                        fetchingResults = true
+                        searchResults = await viewModel.searchSong(query: searchText)
+                        fetchingResults = false
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 10)
+                .ciderRowOptimized()
 
-                // Queue list
-                List {
-                    TextField(text: $searchText, prompt: Text("Search")) {
-                        EmptyView()
-                    }
-                    .focused($isSearching)
-                    .labelsHidden()
-                    .submitLabel(.search)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8.0)
-                    .background(Material.bar)
-                    .clipShape(Capsule())
-                    .padding(.horizontal)
-                    .scrollDismissesKeyboard(.immediately)
-                    .onSubmit {
-                        Task {
-                            fetchingResults = true
-                            searchResults = await viewModel.searchSong(query: searchText)
-                            fetchingResults = false
-                        }
-                    }
-                    .ciderRowOptimized()
+                if !isSearching && searchText.isEmpty {
+                    Divider()
+                        .overlay { Color.white }
+                        .padding(.horizontal)
+                        .ciderRowOptimized()
 
-                    if !isSearching && searchText.isEmpty {
-                        Divider()
-                            .overlay { Color.white }
-                            .padding(.horizontal)
-                            .ciderRowOptimized()
-
-                        Section {
-                            queueView
-                                .ciderRowOptimized()
-                        }
-                        .ciderOptimized()
-                    } else {
-                        resultsView
+                    Section {
+                        queueView
                             .ciderRowOptimized()
                     }
+                    .ciderOptimized()
+                } else {
+                    resultsView
+                        .ciderRowOptimized()
                 }
-                .ciderOptimized()
             }
+            .ciderOptimized()
         }
         .foregroundStyle(.primary)
     }
@@ -157,34 +130,36 @@ struct QueueView: View {
                     .overlay { Color.white }
                     .padding(.horizontal)
 
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(searchResults, id: \.id) { track in
-                        if track.songHref != nil {
-                            Button {
-                                Task {
-                                    self.tappedTrack = track
-                                    await viewModel.playTrackHref(track)
-                                    self.tappedTrack = nil
-                                }
-                            } label: {
-                                HStack {
-                                    trackRow(track)
+                ForEach(searchResults, id: \.id) { track in
+                    if track.songHref != nil {
+                        Button {
+                            Task {
+                                self.tappedTrack = track
+                                print(self.tappedTrack?.artist ?? "[Unknown]")
+                                await viewModel.playTrackHref(track)
+                                self.tappedTrack = nil
+                            }
+                        } label: {
+                            HStack {
+                                trackRow(track)
 
-                                    if self.tappedTrack == track {
-                                        Spacer()
+                                if self.tappedTrack == track {
+                                    Spacer()
 
-                                        ProgressView()
-                                            .progressViewStyle(.circular)
-                                            .padding(.trailing)
-                                    }
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .padding(.trailing)
                                 }
                             }
-                        } else {
-                            trackRow(track)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .ciderRowOptimized()
+                    } else {
+                        trackRow(track)
+                            .ciderRowOptimized()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.vertical, 16)
             } else {
                 Divider()
                     .overlay { Color.white }

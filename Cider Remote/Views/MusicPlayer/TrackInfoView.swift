@@ -8,15 +8,69 @@ struct TrackInfoView: View {
     let albumArtSize: ElementSize
     let geometry: GeometryProxy
 
-    @State private var isCompact: Bool = false
+    @Binding var isCompact: Bool
 
     var body: some View {
+        if isCompact {
+            compact
+        } else {
+            large
+        }
+    }
+
+    @ViewBuilder
+    var compact: some View {
+        HStack(spacing: 16.0) {
+            artwork
+
+            VStack(alignment: .leading) {
+                Text(track.title)
+                    .font(.body.bold())
+                    .lineLimit(1)
+
+                Text(track.artist)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    var large: some View {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+
         let scale: CGFloat = isIPad ? 1.1 : 1.0  // Slightly reduced scale
-        
+        let titleFontSize: CGFloat = CGFloat.getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 8.0
+        let artistFontSize: CGFloat = CGFloat.getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 8.0
+
         VStack(spacing: 10 * scale) {  // Reduced spacing
-            AsyncImage(url: URL(string: track.artwork)) { phase in
-                switch phase {
+            artwork
+
+            VStack(spacing: 5 * scale) {
+                Text(track.title)
+                    .font(.system(size: titleFontSize * scale).bold())
+                    .lineLimit(1)
+
+                Text(track.artist)
+                    .font(.system(size: artistFontSize * scale))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(width: geometry.size.width * (isIPad ? 0.7 : 0.9))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, isIPad ? 20 : 0) // use full display of iPad
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private var artwork: some View {
+        let artworkSize: CGFloat = isCompact ? 65 : min(geometry.size.width * 0.8, 400)
+
+        AsyncImage(url: URL(string: track.artwork)) { phase in
+            switch phase {
                 case .empty:
                     ProgressView()
                 case .success(let image):
@@ -35,50 +89,10 @@ struct TrackInfoView: View {
                         .foregroundStyle(.gray)
                 @unknown default:
                     EmptyView()
-                }
             }
-            .frame(width: artworkSize, height: artworkSize)  // Remove scale from here
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .shadow(radius: 10)
-
-            VStack(spacing: 5 * scale) {  // Reduced spacing
-                Text(track.title)
-                    .font(.system(size: titleFontSize * scale))
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-
-                Text(track.artist)
-                    .font(.system(size: artistFontSize * scale))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .frame(width: geometry.size.width * (isIPad ? 0.7 : 0.9))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.bottom, isIPad ? 20 : 0)  // Add padding at the bottom
-    }
-
-    private var artworkSize: CGFloat {
-        switch albumArtSize {
-            case .small: return min(geometry.size.width * 0.6, 200)
-            case .medium: return min(geometry.size.width * 0.7, 300)
-            case .large: return min(geometry.size.width * 0.8, 400)
-        }
-    }
-
-    private var titleFontSize: CGFloat {
-        switch albumArtSize {
-            case .small: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2))
-            case .medium: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 3.0
-            case .large: return .getFontSize(UIFont.preferredFont(forTextStyle: .title2)) + 8.0
-        }
-    }
-
-    private var artistFontSize: CGFloat {
-        switch albumArtSize {
-            case .small: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1))
-            case .medium: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 3.0
-            case .large: return .getFontSize(UIFont.preferredFont(forTextStyle: .caption1)) + 8.0
-        }
+        .frame(width: artworkSize, height: artworkSize)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .shadow(radius: 10)
     }
 }
