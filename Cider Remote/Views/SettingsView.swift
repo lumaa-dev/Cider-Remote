@@ -105,6 +105,12 @@ struct SettingsView: View {
                         Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
                             .foregroundStyle(.secondary)
                     }
+                    
+                    NavigationLink {
+                        ChangelogsView()
+                    } label: {
+                        Text("Changelogs")
+                    }
                 }
 
                 Section {
