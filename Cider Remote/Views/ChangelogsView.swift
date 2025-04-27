@@ -37,7 +37,10 @@ struct ChangelogsView: View {
             Text(changelog.version)
                 .textCase(.uppercase)
                 .frame(maxWidth: .infinity, minHeight: 100)
-                .font(.system(.largeTitle, weight: .heavy).width(.expanded))
+                .font(
+                    .system(size: CGFloat.getFontSize(UIFont.preferredFont(forTextStyle: .largeTitle)) + 25.0, weight: .black)
+                    .width(.expanded)
+                )
                 .lineLimit(1)
                 .background(color)
                 .foregroundStyle(Color.white)
@@ -73,17 +76,19 @@ struct Changelog: Hashable, Identifiable {
                 "Time and volume bars grow thicker when dragging",
                 "Current track is always displayed in big or small",
                 "Darkened current track background for contrast",
+                "Better background tasks for Live Activities",
                 "Usage of current APIs rather than deprecated ones",
                 "Prompts have been simplified",
                 "Xcode project organization",
                 "Fix: Tapping a search result now plays the right track",
-                "Fix: Labels are now always white whatever color scheme in use"
+                "Fix: Labels are now always white whatever color scheme in use",
+                "Fix: Background tasks are now correctly scheduled and ran"
             ], removals: [
                 "Queue track index used for developers",
                 "The \"Album Art Size\" setting, defaulted to large"
             ])
         return temp
-            .setNotes(headerNote: "Cider Remote 3.0.0 releases along with Cider 3.0.0, this Remote update improves the UI.")
+            .setNotes(headerNote: "Cider Remote 3.0.0 releases along with Cider 3.0.0, this Remote update greatly improves the UI.")
     }
 
     var id: String {
@@ -129,20 +134,19 @@ struct Changelog: Hashable, Identifiable {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
+                            .imageScale(.large)
                             .foregroundStyle(Color.cider)
                     }
                 }
                 .frame(maxWidth: .infinity)
 
-                HStack {
-                    ForEach(self.authors, id: \.self) { author in
-                        Text(author)
-                            .font(.callout)
-                            .padding(.horizontal, 10.0)
-                            .padding(.vertical, 5.0)
-                            .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
-                            .clipShape(Capsule())
-                    }
+                if let header {
+                    Text(header)
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 15.0)
+                        .padding(.vertical, 10.0)
+                        .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 5.0))
                 }
 
                 if !self.additions.isEmpty {
@@ -203,6 +207,32 @@ struct Changelog: Hashable, Identifiable {
                         }
                     }
                     .padding(.vertical)
+                }
+
+                if let footer {
+                    Text(footer)
+                        .font(.subheadline)
+                        .padding(.horizontal, 15.0)
+                        .padding(.vertical, 10.0)
+                        .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 5.0))
+                }
+
+                VStack(alignment: .leading, spacing: 8.0) {
+                    Text("Contributors for \(self.version):")
+                        .font(.title2.bold())
+                        .lineLimit(1)
+
+                    HStack {
+                        ForEach(self.authors, id: \.self) { author in
+                            Text(author)
+                                .font(.callout.width(.expanded))
+                                .padding(.horizontal, 10.0)
+                                .padding(.vertical, 5.0)
+                                .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
+                                .clipShape(Capsule())
+                        }
+                    }
                 }
             }
             .padding()
