@@ -9,7 +9,7 @@ struct PlayerControlsView: View {
 
     @ObservedObject var viewModel: MusicPlayerViewModel
 
-    @State private var isDragging = false
+    @State private var isDragging: Bool = false
 
     let buttonSize: ElementSize
     let geometry: GeometryProxy
@@ -19,9 +19,8 @@ struct PlayerControlsView: View {
         let scale: CGFloat = isIPad ? 1.1 : 1.0  // Slightly reduced scale
 
         VStack(spacing: 12 * scale) {  // Increased spacing between main elements
-                                       // Playback bar
             VStack(spacing: isIPad ? 4 : 0) {  // Increased spacing between slider and timestamps
-                CustomSlider(value: $viewModel.currentTime,
+                CustomSlider(value: $viewModel.currentTime, // playback
                              bounds: 0...viewModel.duration,
                              isDragging: $isDragging,
                              onEditingChanged: { editing in
@@ -40,7 +39,7 @@ struct PlayerControlsView: View {
                     Text(formatTime(viewModel.duration))
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
             .frame(width: min(geometry.size.width * (isIPad ? 0.7 : 0.9), 500))
 
@@ -51,7 +50,7 @@ struct PlayerControlsView: View {
                     }
                 }) {
                     Image(systemName: viewModel.isLiked ? "star.fill" : "star")
-                        .foregroundColor(viewModel.isLiked ? Color(hex: "#fa2f48") : lightDarkColor)
+                        .foregroundStyle(viewModel.isLiked ? Color(hex: "#fa2f48") : lightDarkColor)
                         .frame(width: buttonSize.dimension * scale, height: buttonSize.dimension * scale)
                 }
                 .buttonStyle(SpringyButtonStyle())
@@ -66,7 +65,7 @@ struct PlayerControlsView: View {
                     }) {
                         Image(systemName: "backward.fill")
                             .font(.system(size: buttonSize.fontSize * 1.2 * scale))
-                            .foregroundColor(lightDarkColor)
+                            .foregroundStyle(lightDarkColor)
                             .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
@@ -78,7 +77,7 @@ struct PlayerControlsView: View {
                     }) {
                         Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: buttonSize.fontSize * 2.5 * scale))
-                            .foregroundColor(lightDarkColor)
+                            .foregroundStyle(lightDarkColor)
                             .frame(width: buttonSize.dimension * 1.8 * scale, height: buttonSize.dimension * 1.8 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
@@ -90,7 +89,7 @@ struct PlayerControlsView: View {
                     }) {
                         Image(systemName: "forward.fill")
                             .font(.system(size: buttonSize.fontSize * 1.2 * scale))
-                            .foregroundColor(lightDarkColor)
+                            .foregroundStyle(lightDarkColor)
                             .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
                     }
                     .buttonStyle(SpringyButtonStyle())
@@ -149,7 +148,7 @@ struct AdditionalControls: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .foregroundColor(lightDarkColor)
+                .foregroundStyle(lightDarkColor)
                 .frame(width: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0), height: buttonSize.dimension * (UIDevice.current.userInterfaceIdiom == .pad ? 1.1 : 1.0))
         }
         .buttonStyle(SpringyButtonStyle())
@@ -163,7 +162,7 @@ struct VolumeControlView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "speaker.fill")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             CustomSlider(value: $viewModel.volume,
                          bounds: 0...1,
                          isDragging: $isDragging,
@@ -176,7 +175,7 @@ struct VolumeControlView: View {
             })
             .accentColor(.red)
             Image(systemName: "speaker.wave.3.fill")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .frame(height: 30)  // Set a fixed height for the volume control
     }
@@ -200,7 +199,7 @@ struct AdditionalControlsView: View {
             }) {
                 Image(systemName: "quote.bubble")
                     .font(.system(size: 20))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
             }
             .buttonStyle(ScaleButtonStyle())
 
@@ -211,7 +210,7 @@ struct AdditionalControlsView: View {
             }) {
                 Image(systemName: "list.bullet")
                     .font(.system(size: 20))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
             }
             .buttonStyle(ScaleButtonStyle())
 

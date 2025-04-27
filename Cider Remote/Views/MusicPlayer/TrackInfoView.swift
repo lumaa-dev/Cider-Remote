@@ -8,6 +8,8 @@ struct TrackInfoView: View {
     let albumArtSize: ElementSize
     let geometry: GeometryProxy
 
+    @State private var isCompact: Bool = false
+
     var body: some View {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
         let scale: CGFloat = isIPad ? 1.1 : 1.0  // Slightly reduced scale
@@ -30,13 +32,13 @@ struct TrackInfoView: View {
                     Image(systemName: "music.note")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .foregroundColor(.gray)
+                        .foregroundStyle(.gray)
                 @unknown default:
                     EmptyView()
                 }
             }
             .frame(width: artworkSize, height: artworkSize)  // Remove scale from here
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .shadow(radius: 10)
 
             VStack(spacing: 5 * scale) {  // Reduced spacing
@@ -47,7 +49,7 @@ struct TrackInfoView: View {
 
                 Text(track.artist)
                     .font(.system(size: artistFontSize * scale))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             .frame(width: geometry.size.width * (isIPad ? 0.7 : 0.9))

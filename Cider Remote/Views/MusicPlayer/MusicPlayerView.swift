@@ -77,7 +77,7 @@ struct MusicPlayerView: View {
                         } else {
                             Text("No track playing")
                                 .font(.title)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -97,7 +97,7 @@ struct FriendlyNamePromptView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Friendly Name")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             TextField("e.g. Living Room PC", text: $friendlyName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -203,7 +203,7 @@ struct ConnectionGuideView: View {
                     
                     Text("For further assistance, please visit our support forum or GitHub issues page.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .padding(.top)
                 }
                 .padding()
@@ -269,11 +269,11 @@ struct DeviceRowView: View {
                     .lineLimit(1)
                 Text("\(device.version) | \(device.platform)")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Text("Host: \(device.host)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
@@ -291,7 +291,7 @@ struct DeleteButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "trash")
-                .foregroundColor(.red)
+                .foregroundStyle(.red)
                 .offset(x: 60)
         }
         .padding()

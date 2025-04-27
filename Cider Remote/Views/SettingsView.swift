@@ -22,7 +22,7 @@ struct SettingsView: View {
                 Section(header: Text("TestFlight")) {
                     HStack {
                         Image(systemName: "hammer.fill")
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
                         Text("Thank you for testing!")
                             .font(.headline)
                     }
@@ -89,7 +89,7 @@ struct SettingsView: View {
                             Spacer()
                             Text("\(Int(refreshInterval)) seconds")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         if #available(iOS 17.0, *) {
                             Slider(value: $refreshInterval, in: 5...60, step: 5) {
@@ -114,21 +114,21 @@ struct SettingsView: View {
                         Text("Version")
                         Spacer()
                         Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
                 Section {
                     Text("© Cider Collective 2024-2025")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     NavigationLink {
                         ContributorsView()
                     } label: {
                         Text("Made with ❤️ by contributors")
                             .font(.footnote)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

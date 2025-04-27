@@ -52,7 +52,7 @@ struct Prompt {
             VStack(spacing: 8) {
                 Image(systemName: self.symbol)
                     .font(.system(size: 50))
-                    .foregroundColor(Color.cider)
+                    .foregroundStyle(Color.cider)
 
                 Text(self.title)
                     .font(.title2.bold())

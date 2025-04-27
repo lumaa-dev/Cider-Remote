@@ -34,7 +34,7 @@ struct QueueView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .font(.system(size: 28))
                     }
                 }
@@ -84,7 +84,7 @@ struct QueueView: View {
                 .ciderOptimized()
             }
         }
-        .foregroundColor(.primary)
+        .foregroundStyle(.primary)
     }
 
     @ViewBuilder
@@ -218,13 +218,13 @@ struct QueueView: View {
                         image.resizable()
                     case .failure:
                         Image(systemName: "music.note")
-                            .foregroundColor(.gray)
+                            .foregroundStyle(.gray)
                     @unknown default:
                         EmptyView()
                 }
             }
             .frame(width: 50, height: 50)
-            .cornerRadius(4)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.title)
@@ -233,7 +233,7 @@ struct QueueView: View {
                     .lineLimit(2)
                 Text(track.artist)
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
             }
@@ -250,7 +250,7 @@ struct QueueView: View {
 
                 Text(formatDuration(track.duration))
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 8)

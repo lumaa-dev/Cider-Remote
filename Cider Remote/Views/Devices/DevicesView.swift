@@ -84,11 +84,11 @@ struct DevicesView: View {
             }
 #if DEBUG
             Label("This is a DEBUG version.", systemImage: "gearshape.2.fill")
-                .foregroundColor(.orange)
+                .foregroundStyle(.orange)
                 .accessibility(label: Text("Debug software"))
 #else
             Label("This software is in BETA.", systemImage: "hammer.circle.fill")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .accessibility(label: Text("Beta software"))
 #endif
         }

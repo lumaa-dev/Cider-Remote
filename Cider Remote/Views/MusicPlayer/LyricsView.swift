@@ -35,13 +35,13 @@ struct LyricsView: View {
                                             .aspectRatio(contentMode: .fill)
                                     case .failure:
                                         Image(systemName: "music.note")
-                                            .foregroundColor(.gray)
+                                            .foregroundStyle(.gray)
                                     @unknown default:
                                         EmptyView()
                                 }
                             }
                             .frame(width: 64, height: 64)
-                            .cornerRadius(8)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(currentTrack.title)
@@ -49,7 +49,7 @@ struct LyricsView: View {
                                     .lineLimit(1)
                                 Text(currentTrack.artist)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             }
                         }
@@ -58,7 +58,7 @@ struct LyricsView: View {
                             dismiss()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .font(.system(size: 28))
                         }
                         .padding(.trailing, 10)
@@ -75,7 +75,7 @@ struct LyricsView: View {
 
                         Text("No lyrics available")
                             .font(.system(size: 18))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .padding()
 
                         Spacer()
@@ -92,7 +92,7 @@ struct LyricsView: View {
                 .frame(width: geometry.size.width)
             }
         }
-        .foregroundColor(colorScheme == .dark ? .white : .black)
+        .foregroundStyle(colorScheme == .dark ? .white : .black)
         .onAppear {
             Task {
                 await viewModel.fetchLyrics()
@@ -187,7 +187,7 @@ struct LyricLineView: View {
     var body: some View {
         Text(lyric.text)
             .font(.system(size: 30, weight: .bold))
-            .foregroundColor(textColor)
+            .foregroundStyle(textColor)
             .fixedSize(horizontal: false, vertical: true)
             .lineLimit(nil)
             .multilineTextAlignment(.leading)

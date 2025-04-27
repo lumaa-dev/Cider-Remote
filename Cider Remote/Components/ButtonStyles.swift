@@ -18,11 +18,11 @@ struct SmallButton: View {
                 Text(title)
             }
             .font(.system(size: adjustedFontSize))
-            .foregroundColor(.primary)
+            .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
             .frame(height: adjustedHeight)
             .background(Color.secondary.opacity(0.2))
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -57,11 +57,11 @@ struct LargeButton: View {
                 Text(title)
             }
             .font(.system(size: adjustedFontSize))
-            .foregroundColor(.primary)
+            .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
             .frame(height: adjustedHeight)
             .background(Color.secondary.opacity(0.2))
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -84,8 +84,8 @@ struct PrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .background(colorScheme.primaryColor)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .scaleEffect(configuration.isPressed ? 0.95 : 1)
     }
 }
@@ -96,8 +96,8 @@ struct SecondaryButtonStyle: ButtonStyle {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .background(Color.secondary.opacity(0.1))
-            .foregroundColor(.primary)
-            .cornerRadius(10)
+            .foregroundStyle(.primary)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .scaleEffect(configuration.isPressed ? 0.95 : 1)
     }
 }

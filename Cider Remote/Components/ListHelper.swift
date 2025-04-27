@@ -10,7 +10,7 @@ struct GuideStep: View {
         HStack(alignment: .top, spacing: 15) {
             Text("\(number)")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
                 .frame(width: 30, height: 30)
                 .background(Circle().fill(Color.blue))
             
