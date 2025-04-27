@@ -30,25 +30,13 @@ struct ContentView: View {
             .tint(colorScheme.primaryColor)
 
             if deviceListViewModel.showingNamePrompt {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                    .overlay(
-                        FriendlyNamePromptView()
-                            .environmentObject(deviceListViewModel)
-                            .environmentObject(colorScheme)
-                    )
-                    .transition(.opacity)
+                FriendlyNamePromptView()
+                    .environmentObject(deviceListViewModel)
             }
             
             if deviceListViewModel.showingOldDeviceAlert {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                    .overlay {
-                        OldDeviceAlertView(isPresented: $deviceListViewModel.showingOldDeviceAlert)
-                            .environmentObject(deviceListViewModel)
-                            .environmentObject(colorScheme)
-                    }
-                    .transition(.opacity)
+                OldDeviceAlertView()
+                    .environmentObject(deviceListViewModel)
             }
         }
         .environmentObject(colorScheme)
@@ -60,104 +48,61 @@ struct ContentView: View {
 }
 
 struct OldDeviceAlertView: View {
-    @Binding var isPresented: Bool
-    @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var colorSchemeManager: ColorSchemeManager
+    @EnvironmentObject var viewModel: DeviceListViewModel
+
+    var prompt: Prompt {
+        var p: Prompt = Prompt(
+            symbol: "exclamationmark.triangle",
+            title: "Incompatible Device",
+            view: AnyView(self.txt),
+            actionLabel: "OK",
+            action: {}
+        )
+        return p.cancellable(false)
+    }
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.4)
-                .edgesIgnoringSafeArea(.all)
-            
-            VStack(spacing: 24) {
-                VStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 50))
-                        .foregroundColor(.yellow)
-                    
-                    Text("Outdated Device Detected")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                }
-                
-                Text("The scanned QR code is from an older version of Cider. Please update your Cider client to the latest version to use this remote.")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                Button("OK") {
-                    isPresented = false
-                }
-                .buttonStyle(PrimaryButtonStyle())
-            }
-            .padding(24)
-            .background(colorScheme == .dark ? Color(UIColor.systemGray6) : Color(UIColor.systemBackground))
-            .cornerRadius(16)
-            .shadow(radius: 10)
-            .frame(width: 320)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-            )
-        }
+        FullPrompt(isShowing: $viewModel.showingOldDeviceAlert, prompt: prompt)
+    }
+
+    var txt: some View {
+        Text("The scanned QR code is from an older version of Cider. Please update your Cider client to the latest version to use this remote.")
+            .font(.subheadline)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal)
     }
 }
 
 struct FriendlyNamePromptView: View {
-    @EnvironmentObject var viewModel: DeviceListViewModel
-    @EnvironmentObject var colorScheme: ColorSchemeManager
-    @State private var friendlyName: String = ""
     @Environment(\.colorScheme) var systemColorScheme
 
+    @EnvironmentObject var viewModel: DeviceListViewModel
+
+    @State private var friendlyName: String = ""
+
+    var prompt: Prompt {
+        return .init(symbol: "desktopcomputer", title: "New Device Found", view: AnyView(self.fields), actionLabel: "OK", action: {})
+    }
+
     var body: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 8) {
-                Image(systemName: "desktopcomputer")
-                    .font(.system(size: 50))
-                    .foregroundColor(colorScheme.primaryColor)
+        FullPrompt(isShowing: $viewModel.showingNamePrompt.animation(.spring), prompt: prompt)
+    }
 
-                Text("New Device Found")
-                    .font(.title2)
-                    .fontWeight(.bold)
-            }
+    @ViewBuilder
+    var fields: some View {
+        Text("Please enter a friendly name for this device:")
+            .font(.subheadline)
+            .multilineTextAlignment(.center)
 
-            Text("Please enter a friendly name for this device:")
-                .font(.subheadline)
-                .multilineTextAlignment(.center)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Friendly Name")
+                .font(.caption)
+                .foregroundColor(.secondary)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Friendly Name")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                TextField("e.g. Living Room PC", text: $friendlyName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.words)
-            }
-
-            HStack(spacing: 16) {
-                Button("Cancel") {
-                    viewModel.showingNamePrompt = false
-                }
-                .buttonStyle(SecondaryButtonStyle())
-
-                Button("Add Device") {
-                    viewModel.addNewDevice(withName: friendlyName)
-                    viewModel.showingNamePrompt = false
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(friendlyName.isEmpty)
-            }
+            TextField("e.g. Living Room PC", text: $friendlyName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocapitalization(.words)
         }
-        .padding(24)
-        .background(systemColorScheme == .dark ? Color(UIColor.systemGray6) : Color(UIColor.systemBackground))
-        .cornerRadius(16)
-        .shadow(radius: 10)
-        .frame(width: 320)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-        )
     }
 }
 
@@ -263,7 +208,8 @@ struct ConnectionGuideView: View {
                 }
                 .padding()
             }
-            .navigationBarTitle("Connection Guide", displayMode: .inline)
+            .navigationBarTitle("Connection Guide")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(trailing: Button("Close") {
                 presentationMode.wrappedValue.dismiss()
             })

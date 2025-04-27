@@ -153,10 +153,6 @@ struct SettingsView: View {
             .background(Color.blue)
             .clipShape(Capsule())
     }
-
-    private func resetAllDevices() {
-        //TODO
-    }
 }
 
 struct SettingsView_Previews: PreviewProvider {

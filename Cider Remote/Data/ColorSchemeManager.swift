@@ -3,7 +3,7 @@
 import SwiftUI
 
 class ColorSchemeManager: ObservableObject {
-    @Published var primaryColor: Color = Color(hex: "#fa2f48")
+    @Published var primaryColor: Color = Color.cider
     @Published var secondaryColor: Color = .white
     @Published var backgroundColor: Color = .black.opacity(0.8)
     @Published var dominantColors: [Color] = []
