@@ -74,6 +74,11 @@ class DeviceListViewModel: ObservableObject {
         saveDevices()
     }
 
+    func resetDevices() {
+        devices.removeAll()
+        saveDevices()
+    }
+
     func fetchDevices(from jsonString: String) {
         print("Received JSON string: \(jsonString)")  // Log the received JSON string
 
