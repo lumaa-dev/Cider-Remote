@@ -81,7 +81,10 @@ struct FriendlyNamePromptView: View {
     @State private var friendlyName: String = ""
 
     var prompt: Prompt {
-        return .init(symbol: "desktopcomputer", title: "New Device Found", view: AnyView(self.fields), actionLabel: "OK", action: {})
+        return .init(symbol: "desktopcomputer", title: "New Device Found", view: AnyView(self.fields), actionLabel: "OK", action: {
+            viewModel.addNewDevice(withName: friendlyName)
+            viewModel.showingNamePrompt = false
+        })
     }
 
     var body: some View {
