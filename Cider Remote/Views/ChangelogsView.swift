@@ -3,20 +3,13 @@
 import SwiftUI
 
 struct ChangelogsView: View {
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
+
     private static let changelogs: [Changelog] = [.v300]
+
     @State private var selectedChangelog: Changelog? = nil
 
     var body: some View {
-        list
-            .sheet(item: $selectedChangelog) { log in
-                log.view {
-                    self.selectedChangelog = nil
-                }
-                .interactiveDismissDisabled()
-            }
-    }
-
-    var list: some View {
         List {
             if let first = Self.changelogs.first {
                 Button {
@@ -29,6 +22,12 @@ struct ChangelogsView: View {
         }
         .navigationTitle(Text("Changelogs"))
         .navigationBarTitleDisplayMode(.large)
+        .sheet(item: $selectedChangelog) { log in
+            log.view(colorScheme: colorScheme) {
+                self.selectedChangelog = nil
+            }
+            .interactiveDismissDisabled()
+        }
     }
 
     @ViewBuilder
@@ -120,7 +119,7 @@ struct Changelog: Hashable, Identifiable {
         return self
     }
 
-    func view(dismiss: @escaping () -> Void) -> some View {
+    func view(colorScheme: ColorScheme = .light, dismiss: @escaping () -> Void) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading) {
                 HStack {
@@ -145,7 +144,11 @@ struct Changelog: Hashable, Identifiable {
                         .font(.subheadline.bold())
                         .padding(.horizontal, 15.0)
                         .padding(.vertical, 10.0)
-                        .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
+                        .background(
+                            colorScheme == .light ? Color.gray
+                                .opacity(0.3) : Color(uiColor: UIColor.tertiarySystemBackground)
+                                .opacity(0.5)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 5.0))
                 }
 
@@ -214,7 +217,11 @@ struct Changelog: Hashable, Identifiable {
                         .font(.subheadline)
                         .padding(.horizontal, 15.0)
                         .padding(.vertical, 10.0)
-                        .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
+                        .background(
+                            colorScheme == .light ? Color.gray
+                            .opacity(0.3) : Color(uiColor: UIColor.tertiarySystemBackground)
+                            .opacity(0.5)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 5.0))
                 }
 
@@ -229,7 +236,11 @@ struct Changelog: Hashable, Identifiable {
                                 .font(.callout.width(.expanded))
                                 .padding(.horizontal, 10.0)
                                 .padding(.vertical, 5.0)
-                                .background(Color(uiColor: UIColor.tertiarySystemBackground).opacity(0.5))
+                                .background(
+                                    colorScheme == .light ? Color.gray
+                                        .opacity(0.3) : Color(uiColor: UIColor.tertiarySystemBackground)
+                                        .opacity(0.5)
+                                )
                                 .clipShape(Capsule())
                         }
                     }
