@@ -65,7 +65,7 @@ struct ChangelogsView: View {
 
 struct Changelog: Hashable, Identifiable {
     static var v300: Changelog {
-        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "2a40413...929eac2")
+        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "2a40413...6e174f8")
         temp = temp
             .setChanges(additions: [
                 "In-app changelogs"
