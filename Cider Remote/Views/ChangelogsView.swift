@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ChangelogsView: View {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
+    @Environment(\.openURL) private var openURL: OpenURLAction
 
     private static let changelogs: [Changelog] = [.v300]
 
@@ -23,7 +24,7 @@ struct ChangelogsView: View {
         .navigationTitle(Text("Changelogs"))
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $selectedChangelog) { log in
-            log.view(colorScheme: colorScheme) {
+            log.view(colorScheme: colorScheme, openURL: openURL) {
                 self.selectedChangelog = nil
             }
             .interactiveDismissDisabled()
@@ -127,7 +128,7 @@ struct Changelog: Hashable, Identifiable {
         return self
     }
 
-    func view(colorScheme: ColorScheme = .light, dismiss: @escaping () -> Void) -> some View {
+    func view(colorScheme: ColorScheme = .light, openURL: OpenURLAction, dismiss: @escaping () -> Void) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading) {
                 HStack {
@@ -256,7 +257,7 @@ struct Changelog: Hashable, Identifiable {
 
                 Button {
                     if let url = self.compareUrl {
-                        UIApplication.shared.open(url)
+                        openURL(url)
                     }
                 } label: {
                     HStack(spacing: 8.0) {
