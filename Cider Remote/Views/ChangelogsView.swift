@@ -52,8 +52,9 @@ struct ChangelogsView: View {
 
                 Image(systemName: "chevron.forward")
                     .foregroundStyle(Color.secondary)
+                    .bold()
             }
-            .font(.body)
+            .font(.title2)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal)
@@ -64,7 +65,7 @@ struct ChangelogsView: View {
 
 struct Changelog: Hashable, Identifiable {
     static var v300: Changelog {
-        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"])
+        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "2a40413...929eac2")
         temp = temp
             .setChanges(additions: [
                 "In-app changelogs"
@@ -95,15 +96,22 @@ struct Changelog: Hashable, Identifiable {
     }
     let version: String
     let authors: [String]
+    let commitsIds: String? // 2440087...31d0ddf
     var additions: [String] = []
     var modifications: [String] = []
     var removals: [String] = []
     var header: String? = nil
     var footer: String? = nil
 
-    init(version: String, authors: [String] = []) {
+    var compareUrl: URL? {
+        guard let commitsIds else { return nil }
+        return URL(string: "https://github.com/V-Fast/BackroomsMod/compare/\(commitsIds)")
+    }
+
+    init(version: String, authors: [String] = [], commits: String? = nil) {
         self.version = version
         self.authors = authors
+        self.commitsIds = commits
     }
 
     mutating func setChanges(additions: [String] = [], modifications: [String] = [], removals: [String] = []) -> Self {
@@ -133,7 +141,7 @@ struct Changelog: Hashable, Identifiable {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .imageScale(.large)
+                            .font(.title2)
                             .foregroundStyle(Color.cider)
                     }
                 }
@@ -245,6 +253,22 @@ struct Changelog: Hashable, Identifiable {
                         }
                     }
                 }
+
+                Button {
+                    if let url = self.compareUrl {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 8.0) {
+                        Text("View changes")
+                            .bold()
+
+                        Image(systemName: "arrow.up.right.square")
+                    }
+                    .foregroundStyle(Color.white)
+                }
+                .tint(Color.cider)
+                .buttonStyle(.borderedProminent)
             }
             .padding()
         }
