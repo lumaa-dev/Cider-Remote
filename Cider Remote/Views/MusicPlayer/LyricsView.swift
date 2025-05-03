@@ -24,10 +24,14 @@ struct LyricsView: View {
                     if viewModel.lyrics.isEmpty {
                         Spacer()
 
-                        Text("No lyrics available")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.secondary)
-                            .padding()
+                        if #available(iOS 17.0, *) {
+                            ContentUnavailableView("No lyrics available", systemImage: "quote.bubble")
+                        } else {
+                            Text("No lyrics available")
+                                .font(.system(size: 18))
+                                .foregroundStyle(.secondary)
+                                .padding()
+                        }
 
                         Spacer()
                     } else {
