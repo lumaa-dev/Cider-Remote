@@ -902,7 +902,7 @@ class MusicPlayerViewModel: ObservableObject {
                                 artwork: String((artwork["url"] as! String).replacing(/{(w|h)}/, with: "500")),
                                 duration: (Double(attributes["durationInMillis"] as? String ?? "0") ?? 0.0) / 1000,
                                 artworkData: Data(),
-                                songHref: result["href"] as! String
+                                songHref: (result["href"] as! String)
                             )
                         )
                 }
