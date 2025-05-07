@@ -69,7 +69,9 @@ struct Changelog: Hashable, Identifiable {
         var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "2a40413...1462c61")
         temp = temp
             .setChanges(additions: [
-                "In-app changelogs"
+                "In-app changelogs",
+                "Lyrics are back!",
+                "Lyrics service is shown at the bottom now"
             ], modifications: [
                 "Queue and lyrics appear on the same page",
                 "Search results now use the new listing system",
@@ -106,7 +108,7 @@ struct Changelog: Hashable, Identifiable {
 
     var compareUrl: URL? {
         guard let commitsIds else { return nil }
-        return URL(string: "https://github.com/V-Fast/BackroomsMod/compare/\(commitsIds)")
+        return URL(string: "https://github.com/ciderapp/Cider-Remote/compare/\(commitsIds)")
     }
 
     init(version: String, authors: [String] = [], commits: String? = nil) {

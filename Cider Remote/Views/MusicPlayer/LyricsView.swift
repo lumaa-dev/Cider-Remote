@@ -39,9 +39,18 @@ struct LyricsView: View {
                             lyrics: viewModel.lyrics,
                             activeLine: $activeLine,
                             currentTime: $viewModel.currentTime,
-                            viewportHeight: geometry.size.height - 110, // Adjust for header
+                            viewportHeight: geometry.size.height,
                             lineSpacing: lineSpacing
                         )
+                        .overlay(alignment: .bottom) {
+                            Text("Musixmatch")
+                                .font(.callout)
+                                .padding(.horizontal)
+                                .padding(.vertical, 7.5)
+                                .background(Material.thin)
+                                .clipShape(.rect(cornerRadius: 15.5))
+                                .padding(.bottom, 22.5)
+                        }
                     }
                 }
                 .frame(width: geometry.size.width)
