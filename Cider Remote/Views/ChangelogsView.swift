@@ -66,7 +66,7 @@ struct ChangelogsView: View {
 
 struct Changelog: Hashable, Identifiable {
     static var v300: Changelog {
-        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "4a4173a...3e9826c")
+        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "4a4173a...4457253")
         temp = temp
             .setChanges(additions: [
                 "In-app changelogs",
@@ -85,7 +85,8 @@ struct Changelog: Hashable, Identifiable {
                 "Xcode project organization",
                 "Fix: Tapping a search result now plays the right track",
                 "Fix: Labels are now always white whatever color scheme in use",
-                "Fix: Background tasks are now correctly scheduled and ran"
+                "Fix: Background tasks are now correctly scheduled and ran",
+                "Fix: Tapping a Cider instance will not crash when the queue is at its end"
             ], removals: [
                 "Queue track index used for developers",
                 "The \"Album Art Size\" setting, defaulted to large"
