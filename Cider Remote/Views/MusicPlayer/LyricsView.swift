@@ -21,36 +21,45 @@ struct LyricsView: View {
                     Divider().padding(.horizontal, 20)
 
 
-                    if viewModel.lyrics.isEmpty {
-                        Spacer()
+                    if let lyrics = viewModel.lyrics {
+                        if lyrics.isEmpty {
+                            Spacer()
 
-                        if #available(iOS 17.0, *) {
-                            ContentUnavailableView("No lyrics available", systemImage: "quote.bubble")
+                            if #available(iOS 17.0, *) {
+                                ContentUnavailableView("No lyrics available", systemImage: "quote.bubble")
+                            } else {
+                                Text("No lyrics available")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.secondary)
+                                    .padding()
+                            }
+
+                            Spacer()
                         } else {
-                            Text("No lyrics available")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.secondary)
-                                .padding()
+                            LyricsScrollView(
+                                lyrics: lyrics,
+                                activeLine: $activeLine,
+                                currentTime: $viewModel.currentTime,
+                                viewportHeight: geometry.size.height,
+                                lineSpacing: lineSpacing
+                            )
+                            .overlay(alignment: .bottom) {
+                                Text("Musixmatch")
+                                    .font(.callout)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 7.5)
+                                    .background(Material.thin)
+                                    .clipShape(.rect(cornerRadius: 15.5))
+                                    .padding(.bottom, 22.5)
+                            }
                         }
+                    } else {
+                        Spacer()
+
+                        ProgressView()
+                            .progressViewStyle(.circular)
 
                         Spacer()
-                    } else {
-                        LyricsScrollView(
-                            lyrics: viewModel.lyrics,
-                            activeLine: $activeLine,
-                            currentTime: $viewModel.currentTime,
-                            viewportHeight: geometry.size.height,
-                            lineSpacing: lineSpacing
-                        )
-                        .overlay(alignment: .bottom) {
-                            Text("Musixmatch")
-                                .font(.callout)
-                                .padding(.horizontal)
-                                .padding(.vertical, 7.5)
-                                .background(Material.thin)
-                                .clipShape(.rect(cornerRadius: 15.5))
-                                .padding(.bottom, 22.5)
-                        }
                     }
                 }
                 .frame(width: geometry.size.width)
@@ -68,7 +77,7 @@ struct LyricsView: View {
     }
 
     private func updateCurrentLyric(time: Double) {
-        guard let currentLine = viewModel.lyrics.last(where: { $0.timestamp <= time }) else {
+        guard let lyrics = viewModel.lyrics, let currentLine = lyrics.last(where: { $0.timestamp <= time }) else {
             activeLine = nil
             return
         }

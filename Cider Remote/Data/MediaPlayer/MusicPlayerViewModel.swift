@@ -27,7 +27,7 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var showingLyrics = false
     @Published var showingQueue = false
     @Published var errorMessage: String?
-    @Published var lyrics: [LyricLine] = []
+    @Published var lyrics: [LyricLine]? = nil
 
     private var manager: SocketManager?
     private var socket: SocketIOClient?
@@ -211,6 +211,7 @@ class MusicPlayerViewModel: ObservableObject {
             return
         }
 
+        self.lyrics = nil
         guard let lyricsUrl = URL(string: "https://rise.cider.sh/api/v1/lyrics/mxm") else { return }
 
         do {
@@ -243,9 +244,11 @@ class MusicPlayerViewModel: ObservableObject {
                     self.lyricCache[currentTrack.id] = self.lyrics
                 }
             } else {
+                self.lyrics = []
                 throw NetworkError.serverError("Couldn't reach server")
             }
         } catch {
+            self.lyrics = []
             print(error)
             handleError(error)
         }

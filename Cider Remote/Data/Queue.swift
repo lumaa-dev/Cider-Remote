@@ -21,8 +21,14 @@ struct Queue {
 
     mutating func defineCurrent(track: Track) {
         guard let index = self.tracks.firstIndex(where: { $0.id == track.id }), self.tracks.count > 1 else { return }
+        
+        if index == self.tracks.count - 1 {
+            self.tracks = []
+            self.offset = self.tracks.count
+            return
+        }
 
-        let fx = self.tracks[index + 1...self.tracks.count - 1]
+        let fx = self.tracks[index + 1...max(self.tracks.count - 1, index + 1)]
         self.tracks = Array(fx)
         self.offset = index + 1
     }
