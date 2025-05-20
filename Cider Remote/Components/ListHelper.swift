@@ -28,6 +28,7 @@ struct BulletedList: View {
                 HStack(alignment: .top, spacing: 10) {
                     Text("•")
                     Text(item)
+                        .multilineTextAlignment(.leading)
                 }
             }
         }

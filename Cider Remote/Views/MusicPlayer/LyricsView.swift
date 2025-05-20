@@ -9,6 +9,8 @@ struct LyricsView: View {
     @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
     @ObservedObject var viewModel: MusicPlayerViewModel
+
+    @State private var showMissingInfo: Bool = false
     @State private var activeLine: LyricLine?
 
     private let lineSpacing: CGFloat = 18 // Increased spacing between lines
@@ -25,13 +27,22 @@ struct LyricsView: View {
                         if lyrics.isEmpty {
                             Spacer()
 
-                            if #available(iOS 17.0, *) {
-                                ContentUnavailableView("No lyrics available", systemImage: "quote.bubble")
-                            } else {
-                                Text("No lyrics available")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(.secondary)
-                                    .padding()
+                            VStack {
+                                if #available(iOS 17.0, *) {
+                                    ContentUnavailableView("No lyrics available", systemImage: "quote.bubble")
+                                } else {
+                                    Text("No lyrics available")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(.secondary)
+                                        .padding()
+                                }
+
+//                                Button {
+//                                    self.showMissingInfo.toggle()
+//                                } label: {
+//                                    Text("Learn why")
+//                                }
+//                                .buttonStyle(SecondaryButtonStyle())
                             }
 
                             Spacer()
@@ -44,13 +55,17 @@ struct LyricsView: View {
                                 lineSpacing: lineSpacing
                             )
                             .overlay(alignment: .bottom) {
-                                Text("Musixmatch")
-                                    .font(.callout)
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 7.5)
-                                    .background(Material.thin)
-                                    .clipShape(.rect(cornerRadius: 15.5))
-                                    .padding(.bottom, 22.5)
+//                                Button {
+//                                    self.showMissingInfo.toggle()
+//                                } label: {
+                                    Text("Musixmatch")
+                                        .font(.callout)
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 7.5)
+                                        .background(Material.thin)
+                                        .clipShape(.rect(cornerRadius: 15.5))
+                                        .padding(.bottom, 22.5)
+//                                }
                             }
                         }
                     } else {
@@ -63,6 +78,11 @@ struct LyricsView: View {
                     }
                 }
                 .frame(width: geometry.size.width)
+            }
+            .sheet(isPresented: $showMissingInfo) {
+                MissingLyricView()
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
             }
         }
         .foregroundStyle(colorScheme == .dark ? .white : .black)
@@ -177,6 +197,32 @@ struct LyricLineView: View {
         }
     }
 }
+
+struct MissingLyricView: View {
+    var body: some View {
+        VStack(alignment: .leading) {
+            Image(systemName: "quote.bubble")
+                .font(.largeTitle)
+                .padding()
+                .background(Color.blue)
+                .clipShape(Circle())
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            Text("The lyrics displayed on Cider and Cider Remote are sometimes **not the same**, Cider actually requests multiple lyrics provider, including Apple Music, to have lyrics for your playing track.\n\nCider Remote only uses **Musixmatch** to fetch lyrics, lyrics can be considered \"not found\" on Remote due to the following scenarios:")
+                .multilineTextAlignment(.leading)
+
+            BulletedList(items: [
+                "Musixmatch haven't made the lyrics for the playing track",
+                "The Wi-Fi connection is too poor",
+                "Cider's servers having issues"
+            ])
+            .padding(.top, 4.0)
+        }
+        .padding(.horizontal)
+    }
+}
+
+// MARK: Lyric Data
 
 struct LyricLine: Identifiable, Equatable {
     let id = UUID()

@@ -20,6 +20,19 @@ struct ChangelogsView: View {
                 }
                 .listRowInsets(EdgeInsets())
             }
+
+            if Self.changelogs.count > 1 {
+                Section(header: Text("Older changelogs")) {
+                    ForEach(Self.changelogs[1...Self.changelogs.count - 1]) { chnglg in
+                        Button {
+                            self.selectedChangelog = chnglg
+                        } label: {
+                            self.list(changelog: chnglg)
+                        }
+                        .listRowInsets(EdgeInsets())
+                    }
+                }
+            }
         }
         .navigationTitle(Text("Changelogs"))
         .navigationBarTitleDisplayMode(.large)
@@ -53,7 +66,6 @@ struct ChangelogsView: View {
 
                 Image(systemName: "chevron.forward")
                     .foregroundStyle(Color.secondary)
-                    .bold()
             }
             .font(.title2)
             .multilineTextAlignment(.leading)
@@ -62,39 +74,28 @@ struct ChangelogsView: View {
             .padding(.vertical, 10.0)
         }
     }
+
+    @ViewBuilder
+    private func list(changelog: Changelog) -> some View {
+        HStack(spacing: 8) {
+            Text("Remote \(changelog.version)")
+                .foregroundStyle(Color(uiColor: UIColor.label))
+
+            Spacer()
+
+            Image(systemName: "chevron.forward")
+                .foregroundStyle(Color.secondary)
+                .opacity(0.5)
+        }
+        .font(.body)
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+        .padding(.vertical, 10.0)
+    }
 }
 
 struct Changelog: Hashable, Identifiable {
-    static var v300: Changelog {
-        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "4a4173a...4457253")
-        temp = temp
-            .setChanges(additions: [
-                "In-app changelogs",
-                "Lyrics are back!",
-                "Lyrics service is shown at the bottom now"
-            ], modifications: [
-                "Queue and lyrics appear on the same page",
-                "Search results now use the new listing system",
-                "Changed play/pause button icon",
-                "Time and volume bars grow thicker when dragging",
-                "Current track is always displayed in big or small",
-                "Darkened current track background for contrast",
-                "Better background tasks for Live Activities",
-                "Usage of current APIs rather than deprecated ones",
-                "Prompts have been simplified",
-                "Xcode project organization",
-                "Fix: Tapping a search result now plays the right track",
-                "Fix: Labels are now always white whatever color scheme in use",
-                "Fix: Background tasks are now correctly scheduled and ran",
-                "Fix: Tapping a Cider instance will not crash when the queue is at its end"
-            ], removals: [
-                "Queue track index used for developers",
-                "The \"Album Art Size\" setting, defaulted to large"
-            ])
-        return temp
-            .setNotes(headerNote: "Cider Remote 3.0.0 releases along with Cider 3.0.0, this Remote update greatly improves the UI.")
-    }
-
     var id: String {
         "CiderRemote_v\(self.version.replacing(/\.+/, with: ""))"
     }
@@ -169,12 +170,12 @@ struct Changelog: Hashable, Identifiable {
                         Text("Added:")
                             .font(.title2.bold())
                             .lineLimit(1)
-                        
+
                         ForEach(self.additions, id: \.self) { added in
                             HStack(alignment: .top) {
                                 Image(systemName: "plus.circle.fill")
                                     .imageScale(.small)
-                                    .foregroundStyle(Color.green)
+                                    .foregroundStyle(Color.white, Color.green)
 
                                 Text(added)
                                     .font(.callout)
@@ -194,7 +195,7 @@ struct Changelog: Hashable, Identifiable {
                             HStack(alignment: .top) {
                                 Image(systemName: "pencil.circle.fill")
                                     .imageScale(.small)
-                                    .foregroundStyle(Color.yellow)
+                                    .foregroundStyle(Color.white, Color.yellow)
 
                                 Text(modified)
                                     .font(.callout)
@@ -214,7 +215,7 @@ struct Changelog: Hashable, Identifiable {
                             HStack(alignment: .top) {
                                 Image(systemName: "minus.circle.fill")
                                     .imageScale(.small)
-                                    .foregroundStyle(Color.red)
+                                    .foregroundStyle(Color.white, Color.red)
 
                                 Text(removed)
                                     .font(.callout)
@@ -258,24 +259,74 @@ struct Changelog: Hashable, Identifiable {
                     }
                 }
 
-                Button {
-                    if let url = self.compareUrl {
+                if let url = self.compareUrl {
+                    Button {
                         openURL(url)
-                    }
-                } label: {
-                    HStack(spacing: 8.0) {
-                        Text("View changes")
-                            .bold()
+                    } label: {
+                        HStack(spacing: 8.0) {
+                            Text("View changes")
+                                .bold()
 
-                        Image(systemName: "arrow.up.right.square")
+                            Image(systemName: "arrow.up.right.square")
+                        }
+                        .foregroundStyle(Color.white)
                     }
-                    .foregroundStyle(Color.white)
+                    .tint(Color.cider)
+                    .buttonStyle(.borderedProminent)
                 }
-                .tint(Color.cider)
-                .buttonStyle(.borderedProminent)
             }
             .padding()
         }
+    }
+}
+
+// MARK: Changelogs are HERE
+
+extension Changelog {
+    /// Remote 3.0.1
+    static var v301: Changelog {
+        var temp = Changelog(version: "3.0.1", authors: ["Lumaa"])
+        return temp
+            .setChanges(additions: [
+                "Learn why lyrics aren't available and how it works on Remote from the lyrics view",
+                "A \"Learn why\" button when lyrics aren't available"
+            ], modifications: [
+                "Tap \"Musixmatch\" or \"Learn why\" when viewing lyrics to learn more about Cider Remote's lyrics system",
+                "The \"Added\", \"Changed\" and \"Removed\" sections have now icons filled in white constantly",
+                "Older changelogs will now be minimized in the changelogs view",
+                "Adjustments to how changelogs are listed"
+            ])
+    }
+
+    /// Remote 3.0.0
+    static var v300: Changelog {
+        var temp = Changelog(version: "3.0.0", authors: ["Lumaa"], commits: "4a4173a...4457253")
+        temp = temp
+            .setChanges(additions: [
+                "In-app changelogs",
+                "Lyrics are back!",
+                "Lyrics service is shown at the bottom now"
+            ], modifications: [
+                "Queue and lyrics appear on the same page",
+                "Search results now use the new listing system",
+                "Changed play/pause button icon",
+                "Time and volume bars grow thicker when dragging",
+                "Current track is always displayed in big or small",
+                "Darkened current track background for contrast",
+                "Better background tasks for Live Activities",
+                "Usage of current APIs rather than deprecated ones",
+                "Prompts have been simplified",
+                "Xcode project organization",
+                "Fix: Tapping a search result now plays the right track",
+                "Fix: Labels are now always white whatever color scheme in use",
+                "Fix: Background tasks are now correctly scheduled and ran",
+                "Fix: Tapping a Cider instance will not crash when the queue is at its end"
+            ], removals: [
+                "Queue track index used for developers",
+                "The \"Album Art Size\" setting, defaulted to large"
+            ])
+        return temp
+            .setNotes(headerNote: "Cider Remote 3.0.0 releases along with Cider 3.0.0, this Remote update greatly improves the UI.")
     }
 }
 

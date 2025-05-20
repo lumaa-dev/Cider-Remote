@@ -86,10 +86,6 @@ struct DevicesView: View {
             Label("This is a DEBUG version.", systemImage: "gearshape.2.fill")
                 .foregroundStyle(.orange)
                 .accessibility(label: Text("Debug software"))
-#else
-            Label("This software is in BETA.", systemImage: "hammer.circle.fill")
-                .foregroundStyle(.gray)
-                .accessibility(label: Text("Beta software"))
 #endif
         }
         .navigationBarTitleDisplayMode(.inline)
