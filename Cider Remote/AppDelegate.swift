@@ -79,6 +79,7 @@ public class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
                 print("UPDATED using BG TASK")
             }
         } else {
+            liveActivity.stopActivity()
             print("No device for BG TASK")
             return false
         }
