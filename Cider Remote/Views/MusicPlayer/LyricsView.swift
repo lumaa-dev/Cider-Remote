@@ -37,12 +37,12 @@ struct LyricsView: View {
                                         .padding()
                                 }
 
-//                                Button {
-//                                    self.showMissingInfo.toggle()
-//                                } label: {
-//                                    Text("Learn why")
-//                                }
-//                                .buttonStyle(SecondaryButtonStyle())
+                                Button {
+                                    self.showMissingInfo.toggle()
+                                } label: {
+                                    Text("Learn why")
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
                             }
 
                             Spacer()
@@ -55,9 +55,9 @@ struct LyricsView: View {
                                 lineSpacing: lineSpacing
                             )
                             .overlay(alignment: .bottom) {
-//                                Button {
-//                                    self.showMissingInfo.toggle()
-//                                } label: {
+                                Button {
+                                    self.showMissingInfo.toggle()
+                                } label: {
                                     Text("Musixmatch")
                                         .font(.callout)
                                         .padding(.horizontal)
@@ -65,7 +65,7 @@ struct LyricsView: View {
                                         .background(Material.thin)
                                         .clipShape(.rect(cornerRadius: 15.5))
                                         .padding(.bottom, 22.5)
-//                                }
+                                }
                             }
                         }
                     } else {
@@ -210,6 +210,7 @@ struct MissingLyricView: View {
 
             Text("The lyrics displayed on Cider and Cider Remote are sometimes **not the same**, Cider actually requests multiple lyrics provider, including Apple Music, to have lyrics for your playing track.\n\nCider Remote only uses **Musixmatch** to fetch lyrics, lyrics can be considered \"not found\" on Remote due to the following scenarios:")
                 .multilineTextAlignment(.leading)
+                .padding(.top)
 
             BulletedList(items: [
                 "Musixmatch haven't made the lyrics for the playing track",
