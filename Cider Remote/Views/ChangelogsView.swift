@@ -6,7 +6,7 @@ struct ChangelogsView: View {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
     @Environment(\.openURL) private var openURL: OpenURLAction
 
-    private static let changelogs: [Changelog] = [.v300]
+    private static let changelogs: [Changelog] = [.v301, .v300]
 
     @State private var selectedChangelog: Changelog? = nil
 
@@ -286,16 +286,18 @@ extension Changelog {
     /// Remote 3.0.1
     static var v301: Changelog {
         var temp = Changelog(version: "3.0.1", authors: ["Lumaa"])
-        return temp
+        temp = temp
             .setChanges(additions: [
-                "Learn why lyrics aren't available and how it works on Remote from the lyrics view",
-                "A \"Learn why\" button when lyrics aren't available"
+                "App Store release!",
+                "Apple Music lyric provider - If unavailable, Musixmatch will be used"
             ], modifications: [
-                "Tap \"Musixmatch\" or \"Learn why\" when viewing lyrics to learn more about Cider Remote's lyrics system",
-                "The \"Added\", \"Changed\" and \"Removed\" sections have now icons filled in white constantly",
-                "Older changelogs will now be minimized in the changelogs view",
-                "Adjustments to how changelogs are listed"
+                "The lyric provider displays the correct lyric provider, and \"Remote (Cache)\" when the lyrics aren't fetched but cached",
+                "Live Activities are now available for iOS 16.1 users",
+                "Lyric parser is smarter than ever"
+            ], removals: [
+                "TestFlight specific label in settings"
             ])
+        return temp.setNotes(footerNote: "First App Store update since its release the 23rd of May (2025)")
     }
 
     /// Remote 3.0.0
