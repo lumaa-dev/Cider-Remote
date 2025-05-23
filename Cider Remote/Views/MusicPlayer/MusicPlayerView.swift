@@ -55,7 +55,7 @@ struct MusicPlayerView: View {
                 } else {
                     VStack(spacing: 20) {
                         if let currentTrack = viewModel.currentTrack {
-                            if userDevice.orientation == .portrait {
+                            if userDevice.orientation == .portrait || userDevice.isPad {
                                 portraitView(track: currentTrack, geometry: geometry)
                             } else {
                                 landscapeView(
@@ -133,7 +133,7 @@ struct MusicPlayerView: View {
         }
         .onChange(of: userDevice.orientation) { newOrientation in
             guard newOrientation != .faceDown else { return }
-            
+
             withAnimation(.spring) {
                 self.viewModel.showingQueue = false
                 self.viewModel.showingLyrics = false

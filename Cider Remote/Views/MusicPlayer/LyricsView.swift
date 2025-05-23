@@ -54,7 +54,7 @@ struct LyricsView: View {
                             Spacer()
                         } else {
                             ZStack {
-                                if userDevice.orientation == .portrait {
+                                if userDevice.orientation == .portrait || userDevice.isPad {
                                     LyricsScrollView(
                                         lyrics: lyrics,
                                         activeLine: $activeLine,
