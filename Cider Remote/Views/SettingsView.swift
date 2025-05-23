@@ -19,16 +19,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("TestFlight")) {
-                    HStack {
-                        Image(systemName: "hammer.fill")
-                            .foregroundStyle(.orange)
-                        Text("Thank you for testing!")
-                            .font(.headline)
-                    }
-                    .padding(.vertical, 8)
-                }
-
                 Section(header: Text("Feedback")) {
                     Button {
                         if let url = URL(string: "https://github.com/ciderapp/Cider-Remote/issues/new") {
