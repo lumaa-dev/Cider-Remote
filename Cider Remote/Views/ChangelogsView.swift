@@ -285,19 +285,26 @@ struct Changelog: Hashable, Identifiable {
 extension Changelog {
     /// Remote 3.0.1
     static var v301: Changelog {
-        var temp = Changelog(version: "3.0.1", authors: ["Lumaa"])
+        var temp = Changelog(version: "3.0.1", authors: ["Lumaa"], commits: "4457253...8d052a3")
         temp = temp
             .setChanges(additions: [
                 "App Store release!",
-                "Apple Music lyric provider - If unavailable, Musixmatch will be used"
+                "Horizontal Layout",
+                "Immersive Lyrics (only in Horizontal Layout)",
+                "Apple Music lyric provider",
+                "\"Device Information\" setting to display advanced info about Cider devices",
+                "\"Review Cider Remote\" and \"Share Cider Remote\" buttons in the settings"
             ], modifications: [
-                "The lyric provider displays the correct lyric provider, and \"Remote (Cache)\" when the lyrics aren't fetched but cached",
+                "The lyric provider displays the correct lyric provider, and \"Remote (Cache)\" when the lyrics are obtained from the cache",
+                "Added the \"Favorite\" in the additional actions (ellipsis menu)",
+                "The \"Cider Devices\" header is now smaller to fit the horizontal layout",
                 "Live Activities are now available for iOS 16.1 users",
-                "Lyric parser is smarter than ever"
+                "Lyric parser is smarter than ever",
+                "Even more optimizations and file organization"
             ], removals: [
                 "TestFlight specific label in settings"
             ])
-        return temp.setNotes(footerNote: "First App Store update since its release the 23rd of May (2025)")
+        return temp.setNotes(headerNote: "The Horizontal Layout from the roadmap can already be crossed out")
     }
 
     /// Remote 3.0.0
