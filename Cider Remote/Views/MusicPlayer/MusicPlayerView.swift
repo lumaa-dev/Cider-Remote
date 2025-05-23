@@ -18,6 +18,7 @@ struct MusicPlayerView: View {
     let device: Device
 
     @StateObject private var viewModel: MusicPlayerViewModel
+    @StateObject private var userDevice: UserDevice = .shared
 
     @State private var currentImage: UIImage?
     @State private var isLoading = true
@@ -30,9 +31,6 @@ struct MusicPlayerView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let isIPad = UIDevice.current.userInterfaceIdiom == .pad
-            let scale: CGFloat = isIPad ? 1.2 : 1.0
-            
             ZStack {
                 Color.black
                     .ignoresSafeArea()
@@ -52,62 +50,19 @@ struct MusicPlayerView: View {
 
                 if isLoading {
                     ProgressView()
-                        .scaleEffect(1.5 * scale)
+                        .scaleEffect(1.5)
                         .progressViewStyle(CircularProgressViewStyle(tint: colorScheme.primaryColor))
                 } else {
-                    VStack(spacing: 20 * scale) {
+                    VStack(spacing: 20) {
                         if let currentTrack = viewModel.currentTrack {
-                            HStack {
-                                TrackInfoView(track: currentTrack, onImageLoaded: { image in
-                                    currentImage = image
-                                    colorScheme.updateColors(from: image)
-                                    viewModel.needsColorUpdate = false
-                                }, albumArtSize: albumArtSize, geometry: geometry, isCompact: $isCompact)
-                                .scaleEffect(scale)
-
-                                if isCompact {
-                                    Spacer()
-
-                                    Button {
-                                        withAnimation(.spring) {
-                                            withAnimation(.spring) {
-                                                viewModel.showingQueue = false
-                                                viewModel.showingLyrics = false
-                                            }
-                                        }
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(Color.white.opacity(0.4))
-                                            .font(.system(size: 28))
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-
-                            if isCompact {
-                                if viewModel.showingQueue {
-                                    QueueView(viewModel: viewModel)
-                                } else if viewModel.showingLyrics {
-                                    LyricsView(viewModel: viewModel)
-                                }
+                            if userDevice.orientation == .portrait {
+                                portraitView(track: currentTrack, geometry: geometry)
                             } else {
-                                VStack(spacing: 15 * scale) {
-                                    PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
-                                        .scaleEffect(scale)
-
-                                    VolumeControlView(viewModel: viewModel)
-                                        .padding(.horizontal)
-
-                                    AdditionalControlsView(
-                                        buttonSize: buttonSize,
-                                        geometry: geometry,
-                                        showLyrics: $viewModel.showingLyrics,
-                                        showQueue: $viewModel.showingQueue
-                                    )
-                                    .scaleEffect(scale)
-                                }
-                                .padding(.horizontal, isIPad ? 40 : 20)
+                                landscapeView(
+                                    track: currentTrack,
+                                    geometry: geometry,
+                                    rightButtons: userDevice.orientation == .landscapeLeft
+                                )
                             }
                         } else {
                             Text("No track playing")
@@ -117,7 +72,7 @@ struct MusicPlayerView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.bottom, geometry.safeAreaInsets.bottom)
-                    .padding(.top, isIPad ? (isCompact ? 0 : 50) : (isCompact ? 0 : 30))
+                    .padding(.top, userDevice.isPad ? (isCompact ? 0 : 50) : (isCompact ? 0 : 30))
                 }
             }
             .tint(colorScheme.primaryColor)
@@ -175,6 +130,151 @@ struct MusicPlayerView: View {
             withAnimation(.spring) {
                 self.isCompact = newShow
             }
+        }
+        .onChange(of: userDevice.orientation) { newOrientation in
+            guard newOrientation != .faceDown else { return }
+            
+            withAnimation(.spring) {
+                self.viewModel.showingQueue = false
+                self.viewModel.showingLyrics = false
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func portraitView(track: Track, geometry: GeometryProxy) -> some View {
+        HStack {
+            TrackInfoView(track: track, onImageLoaded: { image in
+                currentImage = image
+                colorScheme.updateColors(from: image)
+                viewModel.needsColorUpdate = false
+            }, albumArtSize: albumArtSize, geometry: geometry, isCompact: $isCompact)
+
+            if isCompact {
+                Spacer()
+
+                closeBtn
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+
+        if isCompact {
+            if viewModel.showingQueue {
+                QueueView(viewModel: viewModel)
+            } else if viewModel.showingLyrics {
+                LyricsView(viewModel: viewModel)
+            }
+        } else {
+            VStack(spacing: 15) {
+                PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+                    .padding(.horizontal)
+
+                VolumeControlView(viewModel: viewModel)
+                    .padding(.horizontal)
+
+                AdditionalControlsView(
+                    showLyrics: $viewModel.showingLyrics,
+                    showQueue: $viewModel.showingQueue,
+                    buttonSize: buttonSize,
+                    geometry: geometry
+                )
+            }
+            .padding(.horizontal, userDevice.isPad ? 40 : 20)
+        }
+    }
+
+    @ViewBuilder
+    private func landscapeView(track: Track, geometry: GeometryProxy, rightButtons: Bool = false) -> some View {
+        HStack {
+            if !isCompact {
+                if rightButtons {
+                    TrackInfoView(track: track, onImageLoaded: { image in
+                        currentImage = image
+                        colorScheme.updateColors(from: image)
+                        viewModel.needsColorUpdate = false
+                    }, albumArtSize: albumArtSize, geometry: geometry, isCompact: $isCompact)
+                    .frame(width: geometry.size.width / 2 - 20)
+
+                    VStack(spacing: 15) {
+                        PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+
+                        VolumeControlView(viewModel: viewModel)
+                            .padding(.horizontal)
+
+                        AdditionalControlsView(
+                            showLyrics: $viewModel.showingLyrics,
+                            showQueue: $viewModel.showingQueue,
+                            buttonSize: buttonSize,
+                            geometry: geometry
+                        )
+                    }
+                    .frame(width: geometry.size.width / 2 - 20)
+                } else {
+                    VStack(spacing: 15) {
+                        PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
+
+                        VolumeControlView(viewModel: viewModel)
+                            .padding(.horizontal)
+
+                        AdditionalControlsView(
+                            showLyrics: $viewModel.showingLyrics,
+                            showQueue: $viewModel.showingQueue,
+                            buttonSize: buttonSize,
+                            geometry: geometry
+                        )
+                    }
+                    .frame(width: geometry.size.width / 2 - 20)
+
+                    TrackInfoView(track: track, onImageLoaded: { image in
+                        currentImage = image
+                        colorScheme.updateColors(from: image)
+                        viewModel.needsColorUpdate = false
+                    }, albumArtSize: albumArtSize, geometry: geometry, isCompact: $isCompact)
+                    .frame(width: geometry.size.width / 2 - 20)
+                }
+            } else {
+                if viewModel.showingLyrics {
+                    LyricsView(viewModel: viewModel)
+                        .frame(width: geometry.size.width - 150)
+                        .overlay(alignment: .topTrailing) {
+                            closeBtn
+                                .padding(.top, 30)
+                        }
+                } else if viewModel.showingQueue {
+                    if #available(iOS 17.0, *) {
+                        ContentUnavailableView(
+                            "Oops!",
+                            systemImage: "iphone.gen3.landscape",
+                            description: Text("Seems like you can't view your queue in landscape mode YET...")
+                        )
+                    } else {
+                        VStack {
+                            Text("Oops!")
+                                .font(.title2.bold())
+
+                            Text("Seems like you can't view your queue in landscape mode YET...")
+                                .font(.caption)
+                                .foregroundStyle(Color.secondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var closeBtn: some View {
+        Button {
+            withAnimation(.spring) {
+                withAnimation(.spring) {
+                    viewModel.showingQueue = false
+                    viewModel.showingLyrics = false
+                }
+            }
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(Color.white.opacity(0.4))
+                .font(.system(size: 28))
         }
     }
 

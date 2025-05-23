@@ -5,6 +5,8 @@ import SwiftUI
 struct DeviceRowView: View {
     @ObservedObject var device: Device
 
+    @AppStorage("deviceDetails") private var deviceDetails: Bool = false
+
     private var status: DeviceStatus {
         if device.isActive && !device.isRefreshing {
             return .online
@@ -24,14 +26,16 @@ struct DeviceRowView: View {
                 Text(device.friendlyName)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(device.version) | \(device.platform)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Text("Host: \(device.host)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if deviceDetails {
+                    Text("\(device.version) | \(device.platform)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text("Host: \(device.host)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()

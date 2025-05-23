@@ -16,10 +16,9 @@ struct PlayerControlsView: View {
 
     var body: some View {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
-        let scale: CGFloat = isIPad ? 1.1 : 1.0  // Slightly reduced scale
 
-        VStack(spacing: 12 * scale) {  // Increased spacing between main elements
-            VStack(spacing: isIPad ? 4 : 0) {  // Increased spacing between slider and timestamps
+        VStack(spacing: 12) {  // Increased spacing between main elements
+            VStack(spacing: 0) {  // Increased spacing between slider and timestamps
                 CustomSlider(value: $viewModel.currentTime, // playback
                              bounds: 0...viewModel.duration,
                              isDragging: $isDragging,
@@ -41,7 +40,7 @@ struct PlayerControlsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            .frame(width: min(geometry.size.width * (isIPad ? 0.7 : 0.9), 500))
+            .padding(.horizontal)
 
             HStack(spacing: 0) {
                 Button(action: {
@@ -51,7 +50,7 @@ struct PlayerControlsView: View {
                 }) {
                     Image(systemName: viewModel.isLiked ? "star.fill" : "star")
                         .foregroundStyle(viewModel.isLiked ? Color(hex: "#fa2f48") : Color.white.opacity(0.6))
-                        .frame(width: buttonSize.dimension * scale, height: buttonSize.dimension * scale)
+                        .frame(width: buttonSize.dimension, height: buttonSize.dimension)
                 }
                 .buttonStyle(SpringyButtonStyle())
 
@@ -64,9 +63,9 @@ struct PlayerControlsView: View {
                         }
                     }) {
                         Image(systemName: "backward.fill")
-                            .font(.system(size: buttonSize.fontSize * 1.2 * scale))
+                            .font(.system(size: buttonSize.fontSize * 1.2))
                             .foregroundStyle(Color.white.opacity(0.6))
-                            .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
+                            .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
                     }
                     .buttonStyle(SpringyButtonStyle())
 
@@ -76,9 +75,9 @@ struct PlayerControlsView: View {
                         }
                     }) {
                         Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: buttonSize.fontSize * 2.5 * scale))
+                            .font(.system(size: buttonSize.fontSize * 2.5))
                             .foregroundStyle(Color.white.opacity(0.6))
-                            .frame(width: buttonSize.dimension * 1.8 * scale, height: buttonSize.dimension * 1.8 * scale)
+                            .frame(width: buttonSize.dimension * 1.8, height: buttonSize.dimension * 1.8)
                     }
                     .buttonStyle(SpringyButtonStyle())
 
@@ -88,19 +87,17 @@ struct PlayerControlsView: View {
                         }
                     }) {
                         Image(systemName: "forward.fill")
-                            .font(.system(size: buttonSize.fontSize * 1.2 * scale))
+                            .font(.system(size: buttonSize.fontSize * 1.2))
                             .foregroundStyle(Color.white.opacity(0.6))
-                            .frame(width: buttonSize.dimension * 1.2 * scale, height: buttonSize.dimension * 1.2 * scale)
+                            .frame(width: buttonSize.dimension * 1.2, height: buttonSize.dimension * 1.2)
                     }
                     .buttonStyle(SpringyButtonStyle())
                 }
-                .frame(width: min(geometry.size.width * (isIPad ? 0.5 : 0.6), 300))
 
                 Spacer()
 
                 AdditionalControls(viewModel: viewModel, lightDarkColor: lightDarkColor, buttonSize: buttonSize)
             }
-            .frame(width: min(geometry.size.width * (isIPad ? 0.8 : 0.95), 500))
             .font(.system(size: isIPad ? 22 : 20))  // Slightly reduced font size for iPad
         }
         .padding(.top, isIPad ? 20 : 0)  // Add padding at the top
@@ -146,6 +143,14 @@ struct AdditionalControls: View {
             } label: {
                 Label(viewModel.isInLibrary ? "Remove from Library" : "Add to Library", systemImage: viewModel.isInLibrary ? "minus" : "plus")
             }
+
+            Button {
+                Task {
+                    await viewModel.toggleLike()
+                }
+            } label: {
+                Label(viewModel.isLiked ? "Unfavorite" : "Favorite", systemImage: viewModel.isLiked ? "star.fill" : "star")
+            }
         } label: {
             Image(systemName: "ellipsis")
                 .foregroundStyle(Color.white.opacity(0.6))
@@ -183,11 +188,13 @@ struct VolumeControlView: View {
 }
 
 struct AdditionalControlsView: View {
-    let buttonSize: ElementSize
-    let geometry: GeometryProxy
     @Environment(\.colorScheme) var colorScheme
+
     @Binding var showLyrics: Bool
     @Binding var showQueue: Bool
+
+    let buttonSize: ElementSize
+    let geometry: GeometryProxy
 
     var body: some View {
         HStack(spacing: 30) {

@@ -104,11 +104,11 @@ struct DevicesView: View {
     }
 
     var header: some View {
-        VStack(spacing: 8) {
+        HStack(spacing: 12) {
             Image("Logo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 60)
+                .frame(height: 40)
 
             Text("Cider Devices")
                 .font(.title2)

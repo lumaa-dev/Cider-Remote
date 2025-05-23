@@ -9,6 +9,7 @@ struct LyricsView: View {
     @EnvironmentObject var colorSchemeManager: ColorSchemeManager
 
     @ObservedObject var viewModel: MusicPlayerViewModel
+    @ObservedObject private var userDevice: UserDevice = .shared
 
     @State private var activeLine: LyricLine?
 
@@ -52,13 +53,23 @@ struct LyricsView: View {
 
                             Spacer()
                         } else {
-                            LyricsScrollView(
-                                lyrics: lyrics,
-                                activeLine: $activeLine,
-                                currentTime: $viewModel.currentTime,
-                                viewportHeight: geometry.size.height,
-                                lineSpacing: lineSpacing
-                            )
+                            ZStack {
+                                if userDevice.orientation == .portrait {
+                                    LyricsScrollView(
+                                        lyrics: lyrics,
+                                        activeLine: $activeLine,
+                                        currentTime: $viewModel.currentTime,
+                                        viewportHeight: geometry.size.height,
+                                        lineSpacing: lineSpacing
+                                    )
+                                } else {
+                                    ImmersiveLyricsView(
+                                        lyrics: lyrics,
+                                        activeLine: $activeLine,
+                                        currentTime: $viewModel.currentTime
+                                    )
+                                }
+                            }
                             .overlay(alignment: .bottom) {
                                 if let lyricProviderString {
                                     Text(lyricProviderString)
@@ -163,6 +174,35 @@ struct LyricsScrollView: View {
 
     private func updateActiveLine() {
         if !isDragging {
+            activeLine = lyrics.last { $0.timestamp <= currentTime + 0.5 }
+        }
+    }
+}
+
+struct ImmersiveLyricsView: View {
+    let lyrics: [LyricLine]
+    @Binding var activeLine: LyricLine?
+    @Binding var currentTime: Double
+
+    var body: some View {
+        if let activeLine {
+            Text(activeLine.text)
+                .font(.system(size: 52).bold())
+                .minimumScaleFactor(0.7)
+                .contentTransition(.numericText(countsDown: true))
+                .frame(maxHeight: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
+                .onAppear {
+                    updateActiveLine()
+                }
+                .onChange(of: currentTime) { _ in
+                    updateActiveLine()
+                }
+        }
+    }
+
+    private func updateActiveLine() {
+        withAnimation(.easeInOut.speed(0.7)) {
             activeLine = lyrics.last { $0.timestamp <= currentTime + 0.5 }
         }
     }

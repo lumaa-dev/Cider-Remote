@@ -58,16 +58,15 @@ struct TrackInfoView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .frame(width: geometry.size.width * (isIPad ? 0.7 : 0.9))
         }
-        .frame(maxWidth: .infinity)
         .padding(.bottom, isIPad ? 20 : 0) // use full display of iPad
+        .frame(maxWidth: .infinity, alignment: .center)
         .transition(.opacity)
     }
 
     @ViewBuilder
     private var artwork: some View {
-        let artworkSize: CGFloat = isCompact ? 65 : min(geometry.size.width * 0.8, 400)
+        let artworkSize: CGFloat = isCompact ? 65 : (UIDevice.current.orientation == .portrait ? geometry.size.width * 0.9 : 250)
 
         AsyncImage(url: URL(string: track.artwork)) { phase in
             switch phase {
