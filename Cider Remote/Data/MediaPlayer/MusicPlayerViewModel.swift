@@ -28,6 +28,7 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var showingQueue = false
     @Published var errorMessage: String?
     @Published var lyrics: [LyricLine]? = nil
+    @Published var lyricsProvider: Parser.LyricProvider? = nil
 
     private var manager: SocketManager?
     private var socket: SocketIOClient?
@@ -200,13 +201,22 @@ class MusicPlayerViewModel: ObservableObject {
         }
     }
 
-    func fetchLyrics() async {
+    func fetchAllLyrics() async {
+        await self.fetchLyricsAm() // apple music
+        if self.lyrics == nil {
+            // unsuccessful
+            await self.fetchLyricsMxm() // musixmatch
+        }
+    }
+
+    func fetchLyricsMxm() async {
         guard let currentTrack else { return }
 
         print("Current track ID: \(currentTrack.id)")
 
         if let cachedLyrics = lyricCache[currentTrack.id] {
             print("Using cached lyrics for track: \(currentTrack.id)")
+            self.lyricsProvider = .cache
             self.lyrics = cachedLyrics
             return
         }
@@ -229,10 +239,6 @@ class MusicPlayerViewModel: ObservableObject {
 
             let (data, response) = try await URLSession.shared.data(for: req)
 
-//            if let str = String(data: data, encoding: .utf8) {
-//                print(str)
-//            }
-
             if let http = response as? HTTPURLResponse, http.statusCode == 200 {
                 let decoder: JSONDecoder = .init()
                 let mxm = try decoder.decode(Track.MxmLyrics.self, from: data)
@@ -240,6 +246,7 @@ class MusicPlayerViewModel: ObservableObject {
                 let lines = mxm.decodeHtml()
                 print("Parsed \(lines.count) lyric lines")
                 DispatchQueue.main.async {
+                    self.lyricsProvider = .mxm
                     self.lyrics = lines
                     self.lyricCache[currentTrack.id] = self.lyrics
                 }
@@ -254,7 +261,7 @@ class MusicPlayerViewModel: ObservableObject {
         }
     }
 
-    func fetchLyricsFromClient() async {
+    func fetchLyricsAm() async {
         guard let currentTrack = currentTrack else {
             print("No current track available")
             return
@@ -264,42 +271,57 @@ class MusicPlayerViewModel: ObservableObject {
 
         if let cachedLyrics = lyricCache[currentTrack.id] {
             print("Using cached lyrics for track: \(currentTrack.id)")
+            self.lyricsProvider = .cache
             self.lyrics = cachedLyrics
             return
         }
 
         do {
-            print("Fetching lyrics FROM CLIENT for track: \(currentTrack.id)")
-            let data = try await sendRequest(endpoint: "lyrics/\(currentTrack.id)", method: "GET")
-            print("Received lyrics data: \(data)")
+            guard let storefront = await self.getStorefront() else { return }
 
-            if let lyricsData = data as? [[String: Any]] {
-                let parsedLyrics = lyricsData.compactMap { lyricData -> LyricLine? in
-                    guard let start = lyricData["start"] as? Double,
-                          let text = lyricData["text"] as? String,
-                          let empty = lyricData["empty"] as? Bool,
-                          !empty && !text.isEmpty else {
-                        return nil
-                    }
-                    // Determine if it's a main lyric or secondary lyric
-                    let isMainLyric = !(text.hasPrefix("(") && text.hasSuffix(")"))
-                    return LyricLine(text: text, timestamp: start, isMainLyric: isMainLyric)
+            print("Fetching lyrics FROM CLIENT for track: \(currentTrack.id)")
+            let path: String = "/v1/catalog/\(storefront)/songs/\(currentTrack.catalogId)/lyrics?l=en-US&platform=web&art[url]=f"
+            let data = try await sendRequest(endpoint: "amapi/run-v3", method: "POST", body: ["path": path])
+
+            print(data)
+            if let jsonDict = data as? [String: Any], let data = jsonDict["data"] as? [String: Any], let subdata = data["data"] as? [[String: Any]], let lyricsData = subdata[0]["attributes"] as? [String: Any] {
+                guard let lyricsXml = lyricsData["ttml"] as? String, let data = lyricsXml.data(using: .utf8) else {
+                    print("-- After fetch decoding error --")
+                    throw NetworkError.decodingError
                 }
-                print("Parsed \(parsedLyrics.count) lyric lines")
-                DispatchQueue.main.async {
-                    self.lyrics = parsedLyrics
-                    self.lyricCache[currentTrack.id] = self.lyrics
-                }
+
+                let xmlParser = XMLParser(data: data)
+                let ttmlParser = Parser(provider: .am)
+                xmlParser.delegate = ttmlParser
+                xmlParser.parse()
+
+                self.lyricsProvider = .am
+                self.lyrics = ttmlParser.lyrics
+                self.lyricCache[currentTrack.id] = self.lyrics
             } else {
-                print("Unexpected lyrics data format")
-                throw NetworkError.decodingError
+                throw NetworkError.invalidResponse
             }
         } catch {
             print("Error fetching lyrics: \(error)")
             handleError(error)
         }
     }
-    
+
+    func getStorefront() async -> String? {
+        do {
+            let data = try await sendRequest(endpoint: "amapi/run-v3", method: "POST", body: ["path": "/v1/me/storefront?limit=1"])
+            print(data)
+            if let jsonDict = data as? [String: Any], let data = jsonDict["data"] as? [String: Any], let subdata = data["data"] as? [[String: Any]], let storefrontId = subdata[0]["id"] as? String {
+                return storefrontId
+            }
+        } catch {
+            print("Error fetching storefront: \(error)")
+            handleError(error)
+        }
+
+        return nil
+    }
+
     private func setPlaybackStatus(_ info: [String: Any]) {
         print("Setting playback status: \(info)")
         if let state = info["state"] as? String {
@@ -335,12 +357,12 @@ class MusicPlayerViewModel: ObservableObject {
         print("Updating track info: \(info)")
         
         // Extract ID from playParams
-        let id: String
-        if let playParams = info["playParams"] as? [String: Any],
-           let trackId = playParams["id"] as? String {
-            id = trackId
-        } else {
-            id = info["id"] as? String ?? ""
+        var id: String?
+        var amId: String?
+
+        if let playParams = info["playParams"] as? [String: Any] {
+            id = playParams["id"] as? String
+            amId = playParams["catalogId"] as? String
         }
         
         let title = info["name"] as? String ?? ""
@@ -363,7 +385,8 @@ class MusicPlayerViewModel: ObservableObject {
 //                }
 //            }
 
-            let newTrack = Track(id: id,
+            let newTrack = Track(id: id ?? "",
+                                 catalogId: amId ?? "",
                                  title: title,
                                  artist: artist,
                                  album: album,
@@ -378,7 +401,8 @@ class MusicPlayerViewModel: ObservableObject {
                 self.lyrics = [] // Clear lyrics when track changes
                 Task {
                     await self.updateQueue(newTrack: newTrack)
-                    await self.fetchLyrics() // Fetch lyrics for the new track
+                    await self.fetchAllLyrics()
+//                    await self.fetchLyrics() // Fetch lyrics for the new track
                 }
             }
         }
@@ -452,12 +476,12 @@ class MusicPlayerViewModel: ObservableObject {
 
     private func getTrack(using info: [String: Any]) -> Track {
         // Extract ID from playParams
-        let id: String
-        if let playParams = info["playParams"] as? [String: Any],
-           let trackId = playParams["id"] as? String {
-            id = trackId
-        } else {
-            id = info["id"] as? String ?? ""
+        var id: String?
+        var amId: String?
+
+        if let playParams = info["playParams"] as? [String: Any] {
+            id = playParams["id"] as? String
+            amId = playParams["catalogId"] as? String
         }
 
         let title = info["name"] as? String ?? ""
@@ -473,7 +497,8 @@ class MusicPlayerViewModel: ObservableObject {
 
             let data: Data? = nil
 
-            return Track(id: id,
+            return Track(id: id ?? "",
+                         catalogId: amId ?? "",
                          title: title,
                          artist: artist,
                          album: album,
@@ -482,7 +507,8 @@ class MusicPlayerViewModel: ObservableObject {
                          artworkData: data ?? Data()
             )
         } else {
-            return Track(id: id,
+            return Track(id: id ?? "",
+                         catalogId: amId ?? "",
                          title: title,
                          artist: artist,
                          album: album,
@@ -624,6 +650,7 @@ class MusicPlayerViewModel: ObservableObject {
                         .append(
                             .init(
                                 id: attributes["isrc"] as! String,
+                                catalogId: attributes["isrc"] as! String,
                                 title: attributes["name"] as! String,
                                 artist: attributes["artistName"] as! String,
                                 album: attributes["albumName"] as! String,

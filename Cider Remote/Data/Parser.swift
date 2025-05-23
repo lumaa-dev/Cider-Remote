@@ -5,10 +5,13 @@ import Foundation
 /// Parses the XML of the `rise.cider.sh` responses
 class Parser: NSObject, XMLParserDelegate {
     var lyrics: [LyricLine]
+    var provider: Parser.LyricProvider
+
     private var currentText: String
     private var currentBegin: String?
 
-    init(lyrics: [LyricLine] = []) {
+    init(provider: Parser.LyricProvider, lyrics: [LyricLine] = []) {
+        self.provider = provider
         self.lyrics = lyrics
         self.currentText = ""
         self.currentBegin = nil
@@ -42,14 +45,31 @@ class Parser: NSObject, XMLParserDelegate {
             let trimmedText = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
             // Ignore empty lines
             if !trimmedText.isEmpty, let beginString = currentBegin {
-                // Convert "HH:MM:SS.mmm" to seconds
-                let parts = beginString.split(separator: ":")
-                let hours = Double(parts[0]) ?? 0
-                let minutes = Double(parts[1]) ?? 0
-                let seconds = Double(parts[2]) ?? 0
-                let timestamp = hours * 3600 + minutes * 60 + seconds
-                // Check if entire lyric is parenthesized
                 let isMain = trimmedText.hasPrefix("(") && trimmedText.hasSuffix(")")
+                var timestamp: Double = 0.0
+
+                let parts = beginString.split(separator: ":")
+                if parts.count == 3 {
+                    // "HH:MM:SS.mmmm"
+                    let hours = Double(parts[0]) ?? 0
+                    let minutes = Double(parts[1]) ?? 0
+                    let seconds = Double(parts[2].split(separator: ".")[0]) ?? 0
+                    let milliseconds = Double(parts[2].split(separator: ".")[1]) ?? 0
+                    timestamp = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
+                } else if parts.count == 2 {
+                    // "MM:SS.mmmm"
+                    let minutes = Double(parts[0]) ?? 0
+                    let seconds = Double(parts[1].split(separator: ".")[0]) ?? 0
+                    let milliseconds = Double(parts[1].split(separator: ".")[1]) ?? 0
+                    timestamp = minutes * 60 + seconds + milliseconds / 1000
+                } else if parts.count <= 1 {
+                    // "SS.mmmm"
+                    let seconds = Double(beginString.split(separator: ".")[0]) ?? 0
+                    let milliseconds = Double(beginString.split(separator: ".")[1]) ?? 0
+                    timestamp = seconds + milliseconds / 1000
+                }
+
+
                 let lyricLine = LyricLine(text: trimmedText,
                                           timestamp: timestamp,
                                           isMainLyric: isMain)
@@ -59,5 +79,11 @@ class Parser: NSObject, XMLParserDelegate {
             currentBegin = nil
             currentText = ""
         }
+    }
+
+    enum LyricProvider {
+        case mxm
+        case am
+        case cache
     }
 }

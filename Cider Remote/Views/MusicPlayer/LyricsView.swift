@@ -10,11 +10,23 @@ struct LyricsView: View {
 
     @ObservedObject var viewModel: MusicPlayerViewModel
 
-    @State private var showMissingInfo: Bool = false
     @State private var activeLine: LyricLine?
 
     private let lineSpacing: CGFloat = 18 // Increased spacing between lines
     private let lyricAdvanceTime: Double = 0.3 // Advance lyrics 0.5 seconds early
+
+    private var lyricProviderString: String? {
+        guard let prov =  viewModel.lyricsProvider else { return nil }
+
+        switch prov {
+            case .mxm:
+                return "Musixmatch"
+            case .am:
+                return "Apple Music"
+            case .cache:
+                return "Remote (Cache)"
+        }
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -36,13 +48,6 @@ struct LyricsView: View {
                                         .foregroundStyle(.secondary)
                                         .padding()
                                 }
-
-                                Button {
-                                    self.showMissingInfo.toggle()
-                                } label: {
-                                    Text("Learn why")
-                                }
-                                .buttonStyle(SecondaryButtonStyle())
                             }
 
                             Spacer()
@@ -55,10 +60,8 @@ struct LyricsView: View {
                                 lineSpacing: lineSpacing
                             )
                             .overlay(alignment: .bottom) {
-                                Button {
-                                    self.showMissingInfo.toggle()
-                                } label: {
-                                    Text("Musixmatch")
+                                if let lyricProviderString {
+                                    Text(lyricProviderString)
                                         .font(.callout)
                                         .padding(.horizontal)
                                         .padding(.vertical, 7.5)
@@ -79,16 +82,11 @@ struct LyricsView: View {
                 }
                 .frame(width: geometry.size.width)
             }
-            .sheet(isPresented: $showMissingInfo) {
-                MissingLyricView()
-                    .presentationDetents([.medium])
-                    .presentationDragIndicator(.visible)
-            }
         }
         .foregroundStyle(colorScheme == .dark ? .white : .black)
         .onAppear {
             Task {
-                await viewModel.fetchLyrics()
+                await viewModel.fetchAllLyrics()
             }
         }
         .onChange(of: viewModel.currentTime) { newTime in
@@ -195,31 +193,6 @@ struct LyricLineView: View {
         } else {
             return .gray.opacity(0.6)
         }
-    }
-}
-
-struct MissingLyricView: View {
-    var body: some View {
-        VStack(alignment: .leading) {
-            Image(systemName: "quote.bubble")
-                .font(.largeTitle)
-                .padding()
-                .background(Color.blue)
-                .clipShape(Circle())
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            Text("The lyrics displayed on Cider and Cider Remote are sometimes **not the same**, Cider actually requests multiple lyrics provider, including Apple Music, to have lyrics for your playing track.\n\nCider Remote only uses **Musixmatch** to fetch lyrics, lyrics can be considered \"not found\" on Remote due to the following scenarios:")
-                .multilineTextAlignment(.leading)
-                .padding(.top)
-
-            BulletedList(items: [
-                "Musixmatch haven't made the lyrics for the playing track",
-                "The Wi-Fi connection is too poor",
-                "Cider's servers having issues"
-            ])
-            .padding(.top, 4.0)
-        }
-        .padding(.horizontal)
     }
 }
 

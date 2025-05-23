@@ -5,6 +5,7 @@ import UIKit
 
 struct Track: Codable, Equatable {
     let id: String
+    let catalogId: String
     let title: String
     let artist: String
     let album: String
@@ -127,7 +128,7 @@ struct Track: Codable, Equatable {
         func decodeHtml() -> [LyricLine] {
             guard let data = self.body.data(using: .utf8) else { return [] }
             let xmlParser = XMLParser(data: data)
-            let ttmlParser = Parser()
+            let ttmlParser = Parser(provider: .mxm)
             xmlParser.delegate = ttmlParser
             xmlParser.parse()
             return ttmlParser.lyrics
