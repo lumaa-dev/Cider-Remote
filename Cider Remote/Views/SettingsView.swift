@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage("autoRefresh") private var autoRefresh: Bool = true
     @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
     @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
+    @AppStorage("deviceDetails") private var deviceDetails: Bool = false
     @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = false
 
     var body: some View {
@@ -26,6 +27,14 @@ struct SettingsView: View {
                         }
                     } label: {
                         Label("Report a Bug", systemImage: "ladybug.fill")
+                    }
+
+                    Button {
+                        if let url = URL(string: "https://apps.apple.com/app/id6670149407?action=write-review") {
+                            openURL(url)
+                        }
+                    } label: {
+                        Label("Review Cider Remote", systemImage: "star.fill")
                     }
                 }
 
@@ -48,6 +57,8 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Advanced")) {
+                    Toggle("Device Information", isOn: $deviceDetails)
+
                     Toggle(isOn: $alertLiveActivity) {
                         HStack(spacing: 8.0) {
                             unstablePill
@@ -70,20 +81,14 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        if #available(iOS 17.0, *) {
-                            Slider(value: $refreshInterval, in: 5...60, step: 5) {
-                                Text("Refresh Interval: \(Int(refreshInterval)) seconds")
-                            }
-                            .disabled(!autoRefresh)
-                            .onChange(of: refreshInterval) { _, _ in
-                                let impact = UIImpactFeedbackGenerator(style: .light) //MARK: API is deprecated
-                                impact.impactOccurred()
-                            }
-                        } else {
-                            Slider(value: $refreshInterval, in: 5...60, step: 5) {
-                                Text("Refresh Interval: \(Int(refreshInterval)) seconds")
-                            }
-                            .disabled(!autoRefresh)
+
+                        Slider(value: $refreshInterval, in: 5...60, step: 5) {
+                            Text("Refresh Interval: \(Int(refreshInterval)) seconds")
+                        }
+                        .disabled(!autoRefresh)
+                        .onChange(of: refreshInterval) { _ in
+                            let impact = UIImpactFeedbackGenerator(style: .light) //MARK: API is deprecated
+                            impact.impactOccurred()
                         }
                     }
                 }
@@ -114,6 +119,10 @@ struct SettingsView: View {
                         Text("Made with ❤️ by contributors")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if let url = URL(string: "https://apple.co/4k6ISFv") {
+                        ShareLink("Share Cider Remote", item: url)
                     }
                 }
             }
