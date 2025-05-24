@@ -61,6 +61,12 @@ class DeviceListViewModel: ObservableObject {
             savedDevicesData = Data()
             devices = []
         }
+
+        self.migrateDevices()
+    }
+
+    private func migrateDevices() {
+        UserDefaults.main.set(self.savedDevicesData, forKey: "savedDevices")
     }
 
     private func saveDevices() {

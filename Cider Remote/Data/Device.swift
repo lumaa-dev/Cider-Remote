@@ -3,6 +3,7 @@
 import SwiftUI
 import Foundation
 import Combine
+import AppIntents
 
 class Device: Identifiable, Codable, ObservableObject, Hashable {
     let id: UUID
