@@ -15,7 +15,7 @@ struct PlayPauseControl: ControlWidget {
                 isOn: device.isPlaying,
                 action: TogglePlayIntent(device: device),
                 valueLabel: { isPlaying in
-                    Label(isPlaying ? "Playing" : "Paused", systemImage: isPlaying ? "play.fill" : "pause.fill")
+                    Label(isPlaying ? "Playing" : "Paused", systemImage: isPlaying ? "pause.fill" : "play.fill")
                         .controlWidgetActionHint(isPlaying ? "Play track" : "Pause track")
                 }
             )
@@ -31,7 +31,7 @@ struct PlayPauseControl: ControlWidget {
         static var description: IntentDescription?  = IntentDescription(stringLiteral: "Select the Cider instance to use the play/pause action.")
 
         @Parameter(title: "Device")
-        var device: DeviceEntity
+        var device: DeviceEntity?
 
         init(device: DeviceEntity) {
             self.device = device
@@ -42,7 +42,7 @@ struct PlayPauseControl: ControlWidget {
 
     struct Provider: AppIntentControlValueProvider {
         func previewValue(configuration: PlayPauseControl.Configuration) -> DeviceEntity {
-            return configuration.device
+            return configuration.device ?? .placeholder
         }
 
         func currentValue(configuration: PlayPauseControl.Configuration) async throws -> DeviceEntity {
@@ -50,7 +50,7 @@ struct PlayPauseControl: ControlWidget {
         }
 
         private func fetchPlaying(_ configuration: PlayPauseControl.Configuration) async throws -> DeviceEntity {
-            var device = configuration.device
+            guard var device = configuration.device else { return .placeholder }
 
             let (status, data) = try await device.sendRequest(endpoint: "playback/is-playing", method: "GET")
             if status == 200 {
@@ -70,4 +70,8 @@ struct PlayPauseControl: ControlWidget {
             }
         }
     }
+}
+
+extension DeviceEntity {
+    static let placeholder: DeviceEntity = .init(name: "Cider Device", token: "ABC", host: "ABC", isPlaying: false)
 }
