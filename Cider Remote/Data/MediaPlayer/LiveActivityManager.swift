@@ -17,6 +17,8 @@ class LiveActivityManager {
     }
 
     func startActivity(using track: Track) {
+        guard let device else { return }
+
         if activity != nil {
             Task {
                 await self.updateActivity(with: track)
@@ -29,11 +31,11 @@ class LiveActivityManager {
             if #available(iOS 16.2, *) {
                 self.lastActivity = try Activity
                     .request(
-                        attributes: .init(),
-                        content: .init(state: cont, staleDate: .now.addingTimeInterval(pow(10, 10)), relevanceScore: 9.0)
+                        attributes: .init(device: device),
+                        content: .init(state: cont, staleDate: .now.addingTimeInterval(pow(10, 3) * 900), relevanceScore: 9.0)
                     )
             } else {
-                self.lastActivity = try Activity.request(attributes: .init(), contentState: cont)
+                self.lastActivity = try Activity.request(attributes: .init(device: device), contentState: cont)
             }
             print("STARTED LIVE ACTIVITY")
         } catch {

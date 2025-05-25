@@ -3,6 +3,7 @@
 import ActivityKit
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 struct NowPlayingLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -12,38 +13,31 @@ struct NowPlayingLiveActivity: Widget {
                 .activitySystemActionForegroundColor(Color.white)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.bottom) {
+                DynamicIslandExpandedRegion(.center, priority: 2.0) {
                     expandView(using: context, dynamicIsland: true)
+                }
+
+                DynamicIslandExpandedRegion(.leading) {
+                    Image("Logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 65, height: 65, alignment: .center)
+                        .clipShape(RoundedRectangle(cornerRadius: 3.0))
+                }
+
+                DynamicIslandExpandedRegion(.trailing) {
+                    playBtn(using: context)
+                        .frame(height: 65, alignment: .center)
                 }
             } compactLeading: {
                 Image("Logo")
                     .resizable()
                     .scaledToFill()
-//                if let artwork = context.state.getArtwork() {
-//                    Image(uiImage: artwork)
-//                        .resizable()
-//                        .frame(width: 10, height: 10, alignment: .center)
-//                        .clipShape(RoundedRectangle(cornerRadius: 5.0))
-//                } else {
-//                    RoundedRectangle(cornerRadius: 5.0)
-//                        .fill(Material.thin)
-//                        .frame(width: 10, height: 10, alignment: .center)
-//                }
             } compactTrailing: {
                 Image(systemName: "waveform")
-                    .font(.body)
-                    .foregroundStyle(Color.pink)
+                    .font(.title2)
+                    .foregroundStyle(Color.white)
             } minimal: {
-//                if let artwork = context.state.getArtwork() {
-//                    Image(uiImage: artwork)
-//                        .resizable()
-//                        .frame(width: 10, height: 10, alignment: .center)
-//                        .clipShape(RoundedRectangle(cornerRadius: 5.0))
-//                } else {
-//                    RoundedRectangle(cornerRadius: 5.0)
-//                        .fill(Material.thin)
-//                        .frame(width: 10, height: 10, alignment: .center)
-//                }
                 Image("Logo")
                     .resizable()
                     .scaledToFill()
@@ -55,31 +49,15 @@ struct NowPlayingLiveActivity: Widget {
     @ViewBuilder
     private func expandView(using context: ActivityViewContext<NowPlayingAttributes>, dynamicIsland: Bool = false) -> some View {
         HStack {
-            ZStack {
-                Image(uiImage: /*UIImage(data: context.state.trackInfo.artworkData) ?? */UIImage.logo) // TEMPORARY SOLUTION
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 40, height: 40, alignment: .center)
-                    .clipShape(RoundedRectangle(cornerRadius: 3.0))
-//                if let artwork = context.state.getArtwork() {
-//                    Image(uiImage: artwork)
-//                        .resizable()
-//                        .frame(width: 30, height: 30, alignment: .center)
-//                        .clipShape(RoundedRectangle(cornerRadius: 3.0))
-//                } else {
-//                    RoundedRectangle(cornerRadius: 3.0)
-//                        .fill(Material.thin)
-//                        .frame(width: 30, height: 30, alignment: .center)
-//                        .shadow(color: .black, radius: 5.0)
-//                }
+            if !dynamicIsland {
+                ZStack {
+                    Image(uiImage: UIImage.logo) // TEMPORARY SOLUTION
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40, alignment: .center)
+                        .clipShape(RoundedRectangle(cornerRadius: 3.0))
+                }
             }
-//            .overlay(alignment: .bottomTrailing) {
-//                if !dynamicIsland {
-//                    Image("Logo")
-//                        .resizable()
-//                        .frame(width: 15, height: 15, alignment: .bottomTrailing)
-//                }
-//            }
 
             VStack(alignment: .leading) {
                 Text(context.state.trackInfo.title)
@@ -94,30 +72,42 @@ struct NowPlayingLiveActivity: Widget {
                     .minimumScaleFactor(0.8)
                     .foregroundStyle(Color.gray)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, dynamicIsland ? 0 : nil)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
+            if !dynamicIsland {
+                playBtn(using: context)
+            }
+        }
+        .padding(.horizontal, dynamicIsland ? 0 : nil)
+        .padding(.vertical, dynamicIsland ? 0 : 7.5)
+    }
 
-            // TODO: Button to pause/play using AppIntent
+    @ViewBuilder
+    private func playBtn(using context: ActivityViewContext<NowPlayingLiveActivity.NowPlayingAttributes>) -> some View {
+        if #available(iOS 17.0, *) {
+            Button(intent: TogglePlayButtonIntent()) {
+                Image(systemName: "playpause.fill")
+                    .font(.title)
+                    .foregroundStyle(Color.white)
+            }
+            .buttonStyle(.plain)
+        } else {
             Image(systemName: "waveform")
                 .font(.title2)
                 .foregroundStyle(Color.white)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 7.5)
     }
 
     struct NowPlayingAttributes: ActivityAttributes {
+        let device: Device
+
         public struct ContentState: Codable, Hashable {
             public func hash(into hasher: inout Hasher) {
                 hasher.combine(trackInfo.id)
             }
 
             var trackInfo: Track
-
-            func getArtwork() -> UIImage? {
-                return self.trackInfo.getArtwork()
-            }
         }
     }
 }
