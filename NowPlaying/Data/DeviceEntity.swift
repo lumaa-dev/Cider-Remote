@@ -67,26 +67,29 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
             print("Request body: \(body)")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        //        print("Response raw: \(String(data: data, encoding: .utf8) ?? "[No data]")")
+        if let (data, response) = try? await URLSession.shared.data(for: request) {
+            //        print("Response raw: \(String(data: data, encoding: .utf8) ?? "[No data]")")
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw NetworkError.invalidResponse
+            }
 
-        print("Response status code: \(httpResponse.statusCode)")
+            print("Response status code: \(httpResponse.statusCode)")
 
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.serverError("Server responded with status code \(httpResponse.statusCode)")
-        }
+            //        guard (200...299).contains(httpResponse.statusCode) else {
+            //            throw NetworkError.serverError("Server responded with status code \(httpResponse.statusCode)")
+            //        }
 
-        do {
-            let json = try JSONSerialization.jsonObject(with: data, options: [])
-//            print("Received data: \(json)")
-            return (statusCode: httpResponse.statusCode, response: json)
-        } catch {
-            print(error)
-            throw NetworkError.decodingError
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: [])
+                //            print("Received data: \(json)")
+                return (statusCode: httpResponse.statusCode, response: json)
+            } catch {
+                print(error)
+                throw NetworkError.decodingError
+            }
+        } else {
+            return (statusCode: -1, response: -1)
         }
     }
 }
