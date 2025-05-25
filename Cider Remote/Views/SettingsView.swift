@@ -145,6 +145,7 @@ struct SettingsView: View {
             .padding(.horizontal, 6.0)
             .padding(.vertical, 3.0)
             .background(Color.blue)
+            .foregroundStyle(Color.white)
             .clipShape(Capsule())
     }
 }
