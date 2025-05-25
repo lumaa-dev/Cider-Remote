@@ -55,13 +55,13 @@ struct MusicPlayerView: View {
                 } else {
                     VStack(spacing: 20) {
                         if let currentTrack = viewModel.currentTrack {
-                            if userDevice.orientation == .portrait || userDevice.isPad {
+                            if userDevice.horizontalOrientation == .portrait || userDevice.isPad {
                                 portraitView(track: currentTrack, geometry: geometry)
                             } else {
                                 landscapeView(
                                     track: currentTrack,
                                     geometry: geometry,
-                                    rightButtons: userDevice.orientation == .landscapeLeft
+                                    rightButtons: userDevice.horizontalOrientation == .landscapeLeft
                                 )
                             }
                         } else {
@@ -132,7 +132,8 @@ struct MusicPlayerView: View {
             }
         }
         .onChange(of: userDevice.orientation) { newOrientation in
-            guard newOrientation != .faceDown else { return }
+            let availableOrientations: [UIDeviceOrientation] = [.portrait, .landscapeLeft, .landscapeRight]
+            guard availableOrientations.contains(newOrientation) else { return }
 
             withAnimation(.spring) {
                 self.viewModel.showingQueue = false
