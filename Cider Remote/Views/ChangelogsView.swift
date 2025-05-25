@@ -283,6 +283,21 @@ struct Changelog: Hashable, Identifiable {
 // MARK: Changelogs are HERE
 
 extension Changelog {
+    /// Remote 3.0.2
+    static var v302: Changelog {
+        var temp = Changelog(version: "3.0.2", authors: ["Lumaa"])
+        temp = temp
+            .setChanges(additions: [
+                "Out-of-app control!",
+                "Shortcuts support, 2 actions",
+                "iOS 18 users have a \"Play/Pause\" action in the Control Center"
+            ], modifications: [
+                "Fix: The Horizontal Layout would activate when the device is facing towards the ceiling or the floor",
+                "Fix: The \"Unstable\" pill is now correctly written in white"
+            ])
+        return temp.setNotes(headerNote: "This update is not finalized, some things may get changed in a later build.")
+    }
+
     /// Remote 3.0.1
     static var v301: Changelog {
         var temp = Changelog(version: "3.0.1", authors: ["Lumaa"], commits: "4457253...8d052a3")
