@@ -1,6 +1,7 @@
 // Made by Lumaa
 
 import UIKit
+import WidgetKit
 import SocketIO
 import Combine
 
@@ -541,6 +542,9 @@ class MusicPlayerViewModel: ObservableObject {
         do {
             _ = try await sendRequest(endpoint: "playback/playpause", method: "POST")
             // Server confirmed the change, no need to update UI again
+            if #available(iOS 18.0, *) {
+                ControlCenter.shared.reloadControls(ofKind: "sh.cider.CiderRemote.PlayPauseControl")
+            }
         } catch {
             // Revert the UI change if the server request failed
             isPlaying.toggle()

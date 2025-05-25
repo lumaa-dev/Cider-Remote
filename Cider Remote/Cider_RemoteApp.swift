@@ -18,6 +18,7 @@ struct Cider_RemoteApp: App {
             ContentView()
                 .onAppear {
                     Self.delegate = self.delegate
+                    RemoteShortcuts.updateAppShortcutParameters()
                 }
         }
     }

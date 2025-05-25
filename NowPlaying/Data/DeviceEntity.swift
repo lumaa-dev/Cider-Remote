@@ -10,14 +10,24 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
     let host: String
     let connectionMethod: String
     let isActive: Bool
+    var isPlaying: Bool
 
-    init(id: UUID = UUID(), name: String, token: String, host: String, connectionMethod: String = "lan", isActive: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        token: String,
+        host: String,
+        connectionMethod: String = "lan",
+        isActive: Bool = false,
+        isPlaying: Bool = false
+    ) {
         self.id = id
         self.name = name
         self.token = token
         self.host = host
         self.connectionMethod = connectionMethod
         self.isActive = isActive
+        self.isPlaying = isPlaying
     }
 
     init(from device: Device) {
@@ -27,6 +37,7 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
         self.host = device.host
         self.connectionMethod = device.connectionMethod
         self.isActive = device.isActive
+        self.isPlaying = false
     }
 
     static var defaultQuery: DeviceQuery = .init()
