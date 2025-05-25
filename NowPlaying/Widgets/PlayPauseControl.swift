@@ -20,6 +20,7 @@ struct PlayPauseControl: ControlWidget {
                 }
             )
             .tint(Color.cider)
+            .disabled(!device.isActive)
         }
         .displayName("Play/Pause a device")
         .description("Play or pause any selected Cider device")
@@ -57,14 +58,17 @@ struct PlayPauseControl: ControlWidget {
                 if let jsonDict = data as? [String: Any] {
                     let j = jsonDict["is_playing"] as? Int == 1
                     print(j ? "[Control] - playing" : "[Control - paused]")
+                    device.isActive = true
                     device.isPlaying = j
 
                     return device
                 } else {
+                    device.isActive = true
                     device.isPlaying = false
                     return device
                 }
             } else {
+                device.isActive = false
                 device.isPlaying = false
                 return device
             }

@@ -9,7 +9,7 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
     let token: String
     let host: String
     let connectionMethod: String
-    let isActive: Bool
+    var isActive: Bool
     var isPlaying: Bool
 
     init(

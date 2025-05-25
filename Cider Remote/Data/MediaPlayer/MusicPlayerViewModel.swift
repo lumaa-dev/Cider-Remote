@@ -87,6 +87,9 @@ class MusicPlayerViewModel: ObservableObject {
                 }
 
                 AppDelegate.shared.scheduleAppRefresh()
+                if #available(iOS 18.0, *) {
+                    ControlCenter.shared.reloadControls(ofKind: "sh.cider.CiderRemote.PlayPauseControl")
+                }
             }
         }
 
