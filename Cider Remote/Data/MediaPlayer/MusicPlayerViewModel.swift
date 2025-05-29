@@ -207,7 +207,7 @@ class MusicPlayerViewModel: ObservableObject {
 
     func fetchAllLyrics() async {
         await self.fetchLyricsAm() // apple music
-        if self.lyrics == nil {
+        if self.lyrics == nil || self.lyrics?.count ?? -1 <= 0 {
             // unsuccessful
             await self.fetchLyricsMxm() // musixmatch
         }
@@ -245,6 +245,7 @@ class MusicPlayerViewModel: ObservableObject {
 
             if let http = response as? HTTPURLResponse, http.statusCode == 200 {
                 let decoder: JSONDecoder = .init()
+                print(String(data: data, encoding: .utf8) ?? "wtf?")
                 let mxm = try decoder.decode(Track.MxmLyrics.self, from: data)
 
                 let lines = mxm.decodeHtml()
