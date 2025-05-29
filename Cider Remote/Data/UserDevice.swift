@@ -10,24 +10,48 @@ class UserDevice: ObservableObject {
         UIDevice.current.orientation
     }
 
+    private var deviceHOrientation: HorizontalOrientation {
+        get throws {
+            switch self.orientation {
+                case .unknown, .portrait:
+                    return .portrait
+                case .portraitUpsideDown:
+                    return .portraitDown
+                case .landscapeLeft:
+                    return .landscapeLeft
+                case .landscapeRight:
+                    return .landscapeRight
+                case .faceUp, .faceDown:
+                    throw DeviceError(message: "Orientation is unavailable horizontally")
+                @unknown default:
+                    return .portrait
+            }
+        }
+    }
+
+    private var prevOrientation: HorizontalOrientation = .portrait
+    private var _horizontalOrientation: HorizontalOrientation = .portrait
+
     var horizontalOrientation: HorizontalOrientation {
-        switch self.orientation {
-            case .unknown:
-                return .portrait
-            case .portrait:
-                return .portrait
-            case .portraitUpsideDown:
-                return .portraitDown
-            case .landscapeLeft:
-                return .landscapeLeft
-            case .landscapeRight:
-                return .landscapeRight
-            case .faceUp:
-                return self.horizontalOrientation // return same as previous orientation
-            case .faceDown:
-                return self.horizontalOrientation
-            @unknown default:
-                return .portrait
+        get {
+            prevOrientation = _horizontalOrientation
+            switch self.orientation {
+                case .unknown, .portrait, .portraitUpsideDown:
+                    _horizontalOrientation = .portrait
+                    return .portrait
+                case .landscapeLeft:
+                    _horizontalOrientation = .landscapeLeft
+                    return .landscapeLeft
+                case .landscapeRight:
+                    _horizontalOrientation = .landscapeRight
+                    return .landscapeRight
+                case .faceUp, .faceDown:
+                    _horizontalOrientation = self.prevOrientation
+                    return self.prevOrientation
+                @unknown default:
+                    _horizontalOrientation = self.prevOrientation
+                    return self.prevOrientation
+            }
         }
     }
 
