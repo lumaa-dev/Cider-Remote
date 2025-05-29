@@ -28,12 +28,12 @@ struct TogglePlayIntent: AppIntent, SetValueIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        let (statusCode, _) = try await device.sendRequest(endpoint: "playback/active")
+        let (statusCode, _) = await device.sendRequest(endpoint: "playback/active")
 
         if statusCode == 200 {
-            (_, _) = try await device.sendRequest(endpoint: self.action.rawValue, method: "POST")
+            (_, _) = await device.sendRequest(endpoint: self.action.rawValue, method: "POST")
 
-            let (_, data) = try await device.sendRequest(endpoint: "playback/is-playing", method: "GET")
+            let (_, data) = await device.sendRequest(endpoint: "playback/is-playing", method: "GET")
             if let jsonDict = data as? [String: Any] {
                 self.device.isPlaying = jsonDict["is_playing"] as? Int == 1
 
