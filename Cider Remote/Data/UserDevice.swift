@@ -10,25 +10,6 @@ class UserDevice: ObservableObject {
         UIDevice.current.orientation
     }
 
-    private var deviceHOrientation: HorizontalOrientation {
-        get throws {
-            switch self.orientation {
-                case .unknown, .portrait:
-                    return .portrait
-                case .portraitUpsideDown:
-                    return .portraitDown
-                case .landscapeLeft:
-                    return .landscapeLeft
-                case .landscapeRight:
-                    return .landscapeRight
-                case .faceUp, .faceDown:
-                    throw DeviceError(message: "Orientation is unavailable horizontally")
-                @unknown default:
-                    return .portrait
-            }
-        }
-    }
-
     private var prevOrientation: HorizontalOrientation = .portrait
     private var _horizontalOrientation: HorizontalOrientation = .portrait
 
