@@ -16,6 +16,7 @@ struct PlayerControlsView: View {
 
     var body: some View {
         let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+        let safeZone: CGFloat = UserDevice.shared.horizontalOrientation == .portrait ? geometry.size.width * 0.85 : geometry.size.width * 0.45
 
         VStack(spacing: 12) {  // Increased spacing between main elements
             VStack(spacing: 0) {  // Increased spacing between slider and timestamps
@@ -40,7 +41,7 @@ struct PlayerControlsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            .padding(.horizontal)
+            .frame(width: safeZone)
 
             HStack(spacing: 0) {
                 Button(action: {
@@ -165,7 +166,10 @@ struct VolumeControlView: View {
     @ObservedObject var viewModel: MusicPlayerViewModel
     @State private var isDragging = false
 
+    let geometry: GeometryProxy
+
     var body: some View {
+        let safeZone: CGFloat = UserDevice.shared.horizontalOrientation == .portrait ? geometry.size.width * 0.85 : geometry.size.width * 0.45
         HStack(spacing: 12) {
             Image(systemName: "speaker.fill")
                 .foregroundStyle(.secondary)
@@ -183,7 +187,7 @@ struct VolumeControlView: View {
             Image(systemName: "speaker.wave.3.fill")
                 .foregroundStyle(.secondary)
         }
-        .frame(height: 30)  // Set a fixed height for the volume control
+        .frame(width: safeZone, height: 30)  // Set a fixed height for the volume control
     }
 }
 

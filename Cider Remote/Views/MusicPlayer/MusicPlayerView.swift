@@ -169,10 +169,8 @@ struct MusicPlayerView: View {
         } else {
             VStack(spacing: 15) {
                 PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
-                    .padding(.horizontal)
 
-                VolumeControlView(viewModel: viewModel)
-                    .padding(.horizontal)
+                VolumeControlView(viewModel: viewModel, geometry: geometry)
 
                 AdditionalControlsView(
                     showLyrics: $viewModel.showingLyrics,
@@ -200,7 +198,7 @@ struct MusicPlayerView: View {
                     VStack(spacing: 15) {
                         PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
 
-                        VolumeControlView(viewModel: viewModel)
+                        VolumeControlView(viewModel: viewModel, geometry: geometry)
                             .padding(.horizontal)
 
                         AdditionalControlsView(
@@ -215,7 +213,7 @@ struct MusicPlayerView: View {
                     VStack(spacing: 15) {
                         PlayerControlsView(viewModel: viewModel, buttonSize: buttonSize, geometry: geometry)
 
-                        VolumeControlView(viewModel: viewModel)
+                        VolumeControlView(viewModel: viewModel, geometry: geometry)
                             .padding(.horizontal)
 
                         AdditionalControlsView(

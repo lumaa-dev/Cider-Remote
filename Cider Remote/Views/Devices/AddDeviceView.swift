@@ -11,9 +11,20 @@ struct AddDeviceView: View {
     @State private var jsonTxt: String = ""
 
     var body: some View {
-        Button(action: {
-            isShowingScanner = true
-        }) {
+        Button {
+            let status = AVCaptureDevice.authorizationStatus(for: .metadata)
+            var isAuthorized = status == .authorized
+
+            Task {
+                if status == .notDetermined {
+                    isAuthorized = await AVCaptureDevice.requestAccess(for: .metadata)
+                }
+            }
+
+            if isAuthorized {
+                isShowingScanner = true
+            }
+        } label: {
             Label("Add New Cider Device", systemImage: "plus.circle")
         }
         .sheet(isPresented: $isShowingScanner) {
