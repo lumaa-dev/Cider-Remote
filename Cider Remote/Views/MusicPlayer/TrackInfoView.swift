@@ -67,7 +67,7 @@ struct TrackInfoView: View {
     @ViewBuilder
     private var artwork: some View {
         let deviceFactor: CGFloat = UserDevice.shared.isPad ? 0.8 : 0.9
-        let artworkSize: CGFloat = isCompact ? 65 : (UIDevice.current.orientation == .portrait ? geometry.size.width * deviceFactor : 250)
+        let artworkSize: CGFloat = isCompact ? 65 : (UserDevice.shared.horizontalOrientation == .portrait ? geometry.size.width * deviceFactor : 250)
 
         AsyncImage(url: URL(string: track.artwork)) { phase in
             switch phase {
