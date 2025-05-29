@@ -6,7 +6,7 @@ struct ChangelogsView: View {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
     @Environment(\.openURL) private var openURL: OpenURLAction
 
-    private static let changelogs: [Changelog] = [.v301, .v300]
+    private static let changelogs: [Changelog] = [.v302, .v301, .v300]
 
     @State private var selectedChangelog: Changelog? = nil
 
@@ -290,7 +290,7 @@ extension Changelog {
             .setChanges(additions: [
                 "Out-of-app control!",
                 "Shortcuts support, 2 actions",
-                "iOS 18 users have a \"Play/Pause\" action in the Control Center"
+                "iOS 18 users have a \"Play/Pause\" action and a \"Skip/Go back\" action in the Control Center"
             ], modifications: [
                 "Fix: The Horizontal Layout would activate when the device is facing towards the ceiling or the floor",
                 "Fix: The \"Unstable\" pill is now correctly written in white"
