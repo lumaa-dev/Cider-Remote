@@ -27,7 +27,7 @@ struct PlayPauseControl: ControlWidget {
         .promptsForUserConfiguration()
     }
 
-    struct Configuration: ControlConfigurationIntent {
+    struct PlayPauseConfiguration: ControlConfigurationIntent {
         static var title: LocalizedStringResource = "Select a Device"
         static var description: IntentDescription?  = IntentDescription(stringLiteral: "Select the Cider instance to use the play/pause action.")
 
@@ -42,18 +42,18 @@ struct PlayPauseControl: ControlWidget {
     }
 
     struct Provider: AppIntentControlValueProvider {
-        func previewValue(configuration: PlayPauseControl.Configuration) -> DeviceEntity {
+        func previewValue(configuration: PlayPauseControl.PlayPauseConfiguration) -> DeviceEntity {
             var device: DeviceEntity = configuration.device ?? .placeholder
             device.isPlaying = false
 
             return device
         }
 
-        func currentValue(configuration: PlayPauseControl.Configuration) async throws -> DeviceEntity {
+        func currentValue(configuration: PlayPauseControl.PlayPauseConfiguration) async throws -> DeviceEntity {
             return try await self.fetchPlaying(configuration)
         }
 
-        private func fetchPlaying(_ configuration: PlayPauseControl.Configuration) async throws -> DeviceEntity {
+        private func fetchPlaying(_ configuration: PlayPauseControl.PlayPauseConfiguration) async throws -> DeviceEntity {
             guard var device = configuration.device else { return .placeholder }
 
             let (status, data) = await device.sendRequest(endpoint: "playback/is-playing", method: "GET")
