@@ -20,8 +20,15 @@ struct TimeTrackIntent: AppIntent {
         Summary("\(\.$timeAction) a track on \(\.$device)")
     }
 
+    init() {}
+
+    init(device: DeviceEntity, timeAction: TimeTrack) {
+        self.device = device
+        self.timeAction = timeAction
+    }
+
     func perform() async throws -> some IntentResult {
-        let (statusCode, _) = try await device.sendRequest(endpoint: "playback/active")
+        let (statusCode, _) = await device.sendRequest(endpoint: "playback/active")
 
         if statusCode == 200 {
             var req: String = "playback/unknown"
@@ -33,7 +40,7 @@ struct TimeTrackIntent: AppIntent {
                     req = "playback/next"
             }
             
-            (_, _) = try await device.sendRequest(endpoint: req, method: "POST")
+            (_, _) = await device.sendRequest(endpoint: req, method: "POST")
             return .result()
         }
         return .result()
@@ -51,4 +58,13 @@ enum TimeTrack: Int, AppEnum {
         ]
     }
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Action"
+
+    var systemImage: String {
+        switch self {
+            case .back:
+                "backward.fill"
+            case .skip:
+                "forward.fill"
+        }
+    }
 }
