@@ -43,7 +43,10 @@ struct PlayPauseControl: ControlWidget {
 
     struct Provider: AppIntentControlValueProvider {
         func previewValue(configuration: PlayPauseControl.Configuration) -> DeviceEntity {
-            return configuration.device ?? .placeholder
+            var device: DeviceEntity = configuration.device ?? .placeholder
+            device.isPlaying = false
+
+            return device
         }
 
         func currentValue(configuration: PlayPauseControl.Configuration) async throws -> DeviceEntity {
@@ -53,7 +56,7 @@ struct PlayPauseControl: ControlWidget {
         private func fetchPlaying(_ configuration: PlayPauseControl.Configuration) async throws -> DeviceEntity {
             guard var device = configuration.device else { return .placeholder }
 
-            let (status, data) = try await device.sendRequest(endpoint: "playback/is-playing", method: "GET")
+            let (status, data) = await device.sendRequest(endpoint: "playback/is-playing", method: "GET")
             if status == 200 {
                 if let jsonDict = data as? [String: Any] {
                     let j = jsonDict["is_playing"] as? Int == 1

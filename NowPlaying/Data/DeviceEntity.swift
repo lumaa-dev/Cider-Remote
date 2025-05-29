@@ -47,12 +47,13 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
         DisplayRepresentation(stringLiteral: self.name)
     }
 
-    func sendRequest(endpoint: String, method: String = "GET", body: [String: Any]? = nil) async throws -> (statusCode: Int, response: Any) {
+    // Never "throws" to prevent control name being displayed
+    func sendRequest(endpoint: String, method: String = "GET", body: [String: Any]? = nil) async -> (statusCode: Int, response: Any) {
         let baseURL = self.connectionMethod == "tunnel"
         ? "https://\(self.host)"
         : "http://\(self.host):10767"
         guard let url = URL(string: "\(baseURL)/api/v1/\(endpoint)") else {
-            throw NetworkError.invalidURL
+            return (statusCode: -1, response: -1)
         }
 
         print("Sending request to: \(url.absoluteString)")
@@ -71,7 +72,7 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
             //        print("Response raw: \(String(data: data, encoding: .utf8) ?? "[No data]")")
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw NetworkError.invalidResponse
+                return (statusCode: -1, response: -1)
             }
 
             print("Response status code: \(httpResponse.statusCode)")
@@ -86,7 +87,7 @@ struct DeviceEntity: Identifiable, Codable, AppEntity {
                 return (statusCode: httpResponse.statusCode, response: json)
             } catch {
                 print(error)
-                throw NetworkError.decodingError
+                return (statusCode: -1, response: error)
             }
         } else {
             return (statusCode: -1, response: -1)
