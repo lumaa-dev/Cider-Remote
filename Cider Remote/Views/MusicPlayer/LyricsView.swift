@@ -96,8 +96,10 @@ struct LyricsView: View {
         }
         .foregroundStyle(colorScheme == .dark ? .white : .black)
         .onAppear {
-            Task {
-                await viewModel.fetchAllLyrics()
+            if viewModel.lyrics == nil {
+                Task {
+                    await viewModel.fetchAllLyrics()
+                }
             }
         }
         .onChange(of: viewModel.currentTime) { newTime in
