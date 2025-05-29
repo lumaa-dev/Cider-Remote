@@ -21,6 +21,7 @@ private var Bundle18: some Widget {
 
     // control center
     PlayPauseControl()
+    TimeTrackControl()
 }
 
 @WidgetBundleBuilder
