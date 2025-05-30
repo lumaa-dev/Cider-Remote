@@ -292,6 +292,9 @@ extension Changelog {
                 "Shortcuts support, 2 actions",
                 "iOS 18 users have a \"Play/Pause\" action and a \"Skip/Go back\" action in the Control Center"
             ], modifications: [
+                "Unified the sliders' width in the Now Playing view",
+                "Inability to add devices if the app cannot access your camera",
+                "Fix: Lyrics are now fetched once instead of everytime users tap the \"Lyrics\" button",
                 "Fix: The Horizontal Layout would activate when the device is facing towards the ceiling or the floor",
                 "Fix: The \"Unstable\" pill is now correctly written in white"
             ])
