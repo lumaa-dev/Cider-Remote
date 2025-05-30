@@ -12,17 +12,21 @@ struct AddDeviceView: View {
 
     var body: some View {
         Button {
-            let status = AVCaptureDevice.authorizationStatus(for: .metadata)
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
             var isAuthorized = status == .authorized
-
-            Task {
-                if status == .notDetermined {
-                    isAuthorized = await AVCaptureDevice.requestAccess(for: .metadata)
-                }
-            }
 
             if isAuthorized {
                 isShowingScanner = true
+            } else {
+                Task {
+                    if status == .notDetermined {
+                        isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
+
+                        if isAuthorized {
+                            isShowingScanner = true
+                        }
+                    }
+                }
             }
         } label: {
             Label("Add New Cider Device", systemImage: "plus.circle")
@@ -44,7 +48,7 @@ struct AddDeviceView: View {
                 .buttonStyle(.borderedProminent)
             }
 #else
-            if AVCaptureDevice.authorizationStatus(for: .metadata) == .authorized {
+            if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
                 QRScannerView(scannedCode: $scannedCode)
                     .overlay(alignment: .top) {
                         Text("Scan the Cider QR code")
