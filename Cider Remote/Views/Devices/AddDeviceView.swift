@@ -44,16 +44,22 @@ struct AddDeviceView: View {
                 .buttonStyle(.borderedProminent)
             }
 #else
-            QRScannerView(scannedCode: $scannedCode)
-                .overlay(alignment: .top) {
-                    Text("Scan the Cider QR code")
-                        .font(.caption)
-                        .padding(.horizontal)
-                        .padding(.vertical, 7.5)
-                        .background(Material.thin)
-                        .clipShape(.rect(cornerRadius: 15.5))
-                        .padding(.top, 22.5)
-                }
+            if AVCaptureDevice.authorizationStatus(for: .metadata) == .authorized {
+                QRScannerView(scannedCode: $scannedCode)
+                    .overlay(alignment: .top) {
+                        Text("Scan the Cider QR code")
+                            .font(.caption)
+                            .padding(.horizontal)
+                            .padding(.vertical, 7.5)
+                            .background(Material.thin)
+                            .clipShape(.rect(cornerRadius: 15.5))
+                            .padding(.top, 22.5)
+                    }
+            } else {
+                Text("Cider Remote cannot access the camera")
+                    .font(.title2.bold())
+                    .padding(.horizontal)
+            }
 #endif
         }
         .onChange(of: scannedCode) { newValue in
