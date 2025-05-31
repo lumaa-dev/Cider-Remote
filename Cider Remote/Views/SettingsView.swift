@@ -9,13 +9,18 @@ struct SettingsView: View {
     @EnvironmentObject var colorScheme: ColorSchemeManager
     @EnvironmentObject var deviceListViewModel: DeviceListViewModel
 
+    // appearence
+    @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
     @AppStorage("buttonSize") private var buttonSize: ElementSize = .medium
     @AppStorage("albumArtSize") private var albumArtSize: ElementSize = .large
+
+    // advanced
+    @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = false
+
+    // devices
+    @AppStorage("deviceDetails") private var deviceDetails: Bool = false
     @AppStorage("autoRefresh") private var autoRefresh: Bool = true
     @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
-    @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
-    @AppStorage("deviceDetails") private var deviceDetails: Bool = false
-    @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = false
 
     var body: some View {
         NavigationView {
@@ -57,8 +62,6 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Advanced")) {
-                    Toggle("Device Information", isOn: $deviceDetails)
-
                     Toggle(isOn: $alertLiveActivity) {
                         HStack(spacing: 8.0) {
                             unstablePill
@@ -69,6 +72,7 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Devices")) {
+                    Toggle("Device Information", isOn: $deviceDetails)
 //                    Button("Reset All Devices", role: .destructive, action: resetAllDevices)
                     Toggle("Automatically Refresh", isOn: $autoRefresh)
 
