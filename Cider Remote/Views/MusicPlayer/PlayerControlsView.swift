@@ -129,6 +129,8 @@ struct AdditionalControls: View {
     let lightDarkColor: Color
     let buttonSize: ElementSize
 
+    @State private var isSharing: Bool = false
+
     init(viewModel: MusicPlayerViewModel, lightDarkColor: Color, buttonSize: ElementSize) {
         self.viewModel = viewModel
         self.lightDarkColor = lightDarkColor
@@ -152,6 +154,12 @@ struct AdditionalControls: View {
             } label: {
                 Label(viewModel.isLiked ? "Unfavorite" : "Favorite", systemImage: viewModel.isLiked ? "star.fill" : "star")
             }
+
+            Button {
+                self.isSharing.toggle()
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
         } label: {
             Image(systemName: "ellipsis")
                 .foregroundStyle(Color.white.opacity(0.6))
@@ -159,6 +167,19 @@ struct AdditionalControls: View {
         }
         .buttonStyle(SpringyButtonStyle())
         .tint(Color.white)
+        .sheet(isPresented: $isSharing) {
+            if let currentTrack = viewModel.currentTrack {
+                ActivityViewController(track: currentTrack)
+                    .presentationDetents([.medium, .large])
+            } else {
+                Text("Nothing to share")
+                    .font(.title2)
+                    .foregroundStyle(Color.secondary)
+                    .onAppear {
+                        isSharing = false
+                    }
+            }
+        }
     }
 }
 

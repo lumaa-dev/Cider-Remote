@@ -31,6 +31,8 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var lyrics: [LyricLine]? = nil
     @Published var lyricsProvider: Parser.LyricProvider? = nil
 
+    @Published var trackUrl: URL? = nil
+
     private var manager: SocketManager?
     private var socket: SocketIOClient?
     private var cancellables = Set<AnyCancellable>()
@@ -39,7 +41,8 @@ class MusicPlayerViewModel: ObservableObject {
     private var seekDebouncer: Debouncer?
     private var imageCache = NSCache<NSString, UIImage>()
     private var lyricCache: [String: [LyricLine]] = [:]
-    
+    private var storefrontCache: String? = nil
+
     private var colorSchemeManager: ColorSchemeManager
 
     init(device: Device, colorSchemeManager: ColorSchemeManager = .init()) {
@@ -317,6 +320,7 @@ class MusicPlayerViewModel: ObservableObject {
             let data = try await sendRequest(endpoint: "amapi/run-v3", method: "POST", body: ["path": "/v1/me/storefront?limit=1"])
             print(data)
             if let jsonDict = data as? [String: Any], let data = jsonDict["data"] as? [String: Any], let subdata = data["data"] as? [[String: Any]], let storefrontId = subdata[0]["id"] as? String {
+                self.storefrontCache = storefrontId
                 return storefrontId
             }
         } catch {
@@ -325,6 +329,20 @@ class MusicPlayerViewModel: ObservableObject {
         }
 
         return nil
+    }
+
+    func getTrackUrl() async -> URL? {
+        guard let currentTrack else { return nil }
+        var storefront: String? = self.storefrontCache
+        if self.storefrontCache == nil, let newStorefront = await self.getStorefront() {
+            storefront = newStorefront
+        }
+
+        if let storefront {
+            return URL(string: "https://music.apple.com/\(storefront)/song/\(currentTrack.catalogId)")
+        } else {
+            return nil
+        }
     }
 
     private func setPlaybackStatus(_ info: [String: Any]) {
