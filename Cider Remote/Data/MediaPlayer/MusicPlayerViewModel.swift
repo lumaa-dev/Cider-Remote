@@ -16,6 +16,7 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var queueItems: [Track] = []
     @Published var sourceQueue: Queue?
     @Published var currentTrack: Track?
+    @Published var trackUrl: URL? = nil
     @Published var isPlaying: Bool = false
     @Published var currentTime: Double = 0
     @Published var duration: Double = 0
@@ -30,8 +31,6 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var lyrics: [LyricLine]? = nil
     @Published var lyricsProvider: Parser.LyricProvider? = nil
-
-    @Published var trackUrl: URL? = nil
 
     private var manager: SocketManager?
     private var socket: SocketIOClient?
