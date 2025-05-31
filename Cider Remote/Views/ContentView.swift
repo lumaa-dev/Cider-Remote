@@ -38,6 +38,13 @@ struct ContentView: View {
                 OldDeviceAlertView()
                     .environmentObject(deviceListViewModel)
             }
+
+            if deviceListViewModel.showingCameraPrompt {
+                withAnimation {
+                    CameraPromptView()
+                        .environmentObject(deviceListViewModel)
+                }
+            }
         }
         .environmentObject(colorScheme)
         .environmentObject(deviceListViewModel)
@@ -105,6 +112,34 @@ struct FriendlyNamePromptView: View {
             TextField("e.g. Living Room PC", text: $friendlyName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.words)
+        }
+    }
+}
+
+struct CameraPromptView: View {
+    @Environment(\.openURL) private var openURL: OpenURLAction
+    @EnvironmentObject var viewModel: DeviceListViewModel
+
+    var prompt: Prompt {
+        return .init(symbol: "camera", title: "Enable Camera", view: AnyView(self.text), actionLabel: "Open Settings", action: {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                openURL(url)
+            }
+        })
+    }
+
+    var body: some View {
+        FullPrompt(isShowing: $viewModel.showingCameraPrompt, prompt: prompt)
+    }
+
+    @ViewBuilder
+    var text: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Cider Remote needs access to your camera to scan the device's QR code")
+                .multilineTextAlignment(.leading)
+
+            Text("Devices cannot be added without the camera and/or the QR code")
+                .multilineTextAlignment(.leading)
         }
     }
 }

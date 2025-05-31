@@ -18,14 +18,16 @@ struct AddDeviceView: View {
             if isAuthorized {
                 isShowingScanner = true
             } else {
-                Task {
-                    if status == .notDetermined {
+                if status == .notDetermined {
+                    Task {
                         isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
 
                         if isAuthorized {
                             isShowingScanner = true
                         }
                     }
+                } else {
+                    viewModel.showingCameraPrompt = true
                 }
             }
         } label: {

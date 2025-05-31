@@ -7,9 +7,11 @@ import SwiftUI
 class DeviceListViewModel: ObservableObject {
     @Published var devices: [Device] = []
     @Published var isRefreshing: Bool = false
-    @Published var showingNamePrompt: Bool = false
     @Published var newDeviceInfo: ConnectionInfo?
+
+    @Published var showingNamePrompt: Bool = false
     @Published var showingOldDeviceAlert: Bool = false
+    @Published var showingCameraPrompt: Bool = false
 
     @AppStorage("savedDevices") private var savedDevicesData: Data = Data()
     @AppStorage("autoRefresh") private var autoRefresh: Bool = true
