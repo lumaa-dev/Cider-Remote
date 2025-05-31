@@ -290,10 +290,12 @@ extension Changelog {
             .setChanges(additions: [
                 "Out-of-app control!",
                 "Shortcuts support, 2 actions",
+                "Share tracks in the ellipsis menu",
+                "Prompt to enable access to the camera when adding a device",
                 "iOS 18 users have a \"Play/Pause\" action and a \"Skip/Go back\" action in the Control Center"
             ], modifications: [
+                "iOS 17 users can now play or pause in the Live Activity",
                 "Unified the sliders' width in the Now Playing view",
-                "Inability to add devices if the app cannot access your camera",
                 "Fix: Lyrics are now fetched once instead of everytime users tap the \"Lyrics\" button",
                 "Fix: The Horizontal Layout would activate when the device is facing towards the ceiling or the floor",
                 "Fix: The \"Unstable\" pill is now correctly written in white"
