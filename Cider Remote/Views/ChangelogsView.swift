@@ -285,7 +285,7 @@ struct Changelog: Hashable, Identifiable {
 extension Changelog {
     /// Remote 3.0.2
     static var v302: Changelog {
-        var temp = Changelog(version: "3.0.2", authors: ["Lumaa"])
+        var temp = Changelog(version: "3.0.2", authors: ["Lumaa"], commits: "8d052a3...bf16446")
         temp = temp
             .setChanges(additions: [
                 "Out-of-app control!",
@@ -300,7 +300,7 @@ extension Changelog {
                 "Fix: The Horizontal Layout would activate when the device is facing towards the ceiling or the floor",
                 "Fix: The \"Unstable\" pill is now correctly written in white"
             ])
-        return temp.setNotes(headerNote: "This update is not finalized, some things may get changed in a later build.")
+        return temp.setNotes(headerNote: "The roadmap is already halfway done, out-of-the-app actions are done")
     }
 
     /// Remote 3.0.1
@@ -357,8 +357,4 @@ extension Changelog {
         return temp
             .setNotes(headerNote: "Cider Remote 3.0.0 releases along with Cider 3.0.0, this Remote update greatly improves the UI.")
     }
-}
-
-#Preview {
-    ChangelogsView()
 }
