@@ -6,7 +6,7 @@ struct ChangelogsView: View {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
     @Environment(\.openURL) private var openURL: OpenURLAction
 
-    private static let changelogs: [Changelog] = [.v302, .v301, .v300]
+    private static let changelogs: [Changelog] = [.v303, .v302, .v301, .v300]
 
     @State private var selectedChangelog: Changelog? = nil
 
@@ -283,6 +283,22 @@ struct Changelog: Hashable, Identifiable {
 // MARK: Changelogs are HERE
 
 extension Changelog {
+    /// Remote 3.0.3
+    static var v303: Changelog {
+        var temp = Changelog(version: "3.0.3", authors: ["Lumaa"], commits: nil)
+        temp = temp
+            .setChanges(additions: [
+                "Library Browser!",
+                "Play a track from your recently added albums list",
+                "Track album releases"
+            ], modifications: [
+                "Fix: Immersive Lyrics now enables only in landscape mode"
+            ], removals: [
+                "Track search bar in the queue"
+            ])
+        return temp
+    }
+
     /// Remote 3.0.2
     static var v302: Changelog {
         var temp = Changelog(version: "3.0.2", authors: ["Lumaa"], commits: "8d052a3...bf16446")
