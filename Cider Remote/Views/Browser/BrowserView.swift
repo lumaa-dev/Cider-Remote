@@ -13,7 +13,12 @@ struct BrowserView: View {
 
     @State private var albums: [LibraryAlbum] = []
 
-    private let columns = [
+    private let columns = UserDevice.shared.isPad ? [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ] : [
         GridItem(.flexible()),
         GridItem(.flexible())
     ]
