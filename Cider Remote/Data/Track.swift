@@ -14,6 +14,41 @@ struct Track: Codable, Equatable {
     var artworkData: Data
     var songHref: String? = nil
 
+
+    init(
+        id: String,
+        catalogId: String,
+        title: String,
+        artist: String,
+        album: String,
+        artwork: String,
+        duration: Double,
+        artworkData: Data,
+        songHref: String? = nil
+    ) {
+        self.id = id
+        self.catalogId = catalogId
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.artwork = artwork
+        self.duration = duration
+        self.artworkData = artworkData
+        self.songHref = songHref
+    }
+
+    init(from library: LibraryTrack) {
+        self.id = library.id
+        self.catalogId = library.catalogId
+        self.title = library.name
+        self.artist = library.artist
+        self.album = library.album.title
+        self.artwork = library.album.artwork
+        self.duration = 0.0
+        self.artworkData = Data()
+        self.songHref = library.href
+    }
+
     func getArtwork() async -> UIImage? {
         do {
             let url: URL = URL(string: self.artwork)!

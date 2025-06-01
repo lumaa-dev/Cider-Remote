@@ -6,63 +6,46 @@ struct QueueView: View {
     @Environment(\.dismiss) private var dismiss: DismissAction
     @Environment(\.colorScheme) var colorScheme: ColorScheme
 
+    @EnvironmentObject var colorPalette: ColorSchemeManager
+
     @ObservedObject var viewModel: MusicPlayerViewModel
 
-    @State private var searchText: String = ""
-    @State private var searchResults: [Track] = []
     @State private var tappedTrack: Track? = nil
     @State private var fetchingResults: Bool = false
+
+    @State private var librarySheet: Bool = false
 
     @FocusState private var isSearching: Bool
 
     var body: some View {
         ZStack {
             List {
-                TextField(text: $searchText, prompt: Text("Search")) {
-                    EmptyView()
-                }
-                .focused($isSearching)
-                .labelsHidden()
-                .submitLabel(.search)
-                .padding(.horizontal)
-                .padding(.vertical, 8.0)
-                .background(Material.bar)
-                .clipShape(Capsule())
-                .padding(.horizontal)
-                .scrollDismissesKeyboard(.immediately)
-                .onSubmit {
-                    Task {
-                        fetchingResults = true
-                        searchResults = await viewModel.searchSong(query: searchText)
-                        fetchingResults = false
-                    }
-                }
-                .ciderRowOptimized()
+                BrowserView.access($librarySheet, background: colorPalette.primaryColor)
+                    .padding(.horizontal)
+                    .ciderRowOptimized()
 
-                if !isSearching && searchText.isEmpty {
-                    Divider()
-                        .overlay { Color.white }
-                        .padding(.horizontal)
-                        .ciderRowOptimized()
+                Divider()
+                    .overlay { Color.white }
+                    .padding(.horizontal)
+                    .ciderRowOptimized()
 
-                    Section {
-                        queueView
-                            .ciderRowOptimized()
-                    }
-                    .ciderOptimized()
-                } else {
-                    resultsView
+                Section {
+                    queueView
                         .ciderRowOptimized()
                 }
+                .ciderOptimized()
             }
             .ciderOptimized()
         }
         .foregroundStyle(.primary)
+        .fullScreenCover(isPresented: $librarySheet) {
+            BrowserView(device: viewModel.device)
+        }
     }
 
     @ViewBuilder
     private var queueView: some View {
-        if viewModel.queueItems.count <= 0 {
+        if viewModel.queueItems.count <= 1 { // 1 = single
             if #available(iOS 17.0, *) {
                 ContentUnavailableView("Queue empty", systemImage: "list.number", description: Text("Your Cider queue is empty"))
             } else {
@@ -113,70 +96,6 @@ struct QueueView: View {
 
                 Task {
                     await viewModel.moveQueue(from: firstIndex, to: to)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var resultsView: some View {
-        if fetchingResults {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .padding(.vertical)
-        } else {
-            if searchResults.count > 0 || isSearching {
-                Divider()
-                    .overlay { Color.white }
-                    .padding(.horizontal)
-
-                ForEach(searchResults, id: \.id) { track in
-                    if track.songHref != nil {
-                        Button {
-                            Task {
-                                self.tappedTrack = track
-                                print(self.tappedTrack?.artist ?? "[Unknown]")
-                                await viewModel.playTrackHref(track)
-                                self.tappedTrack = nil
-                            }
-                        } label: {
-                            HStack {
-                                trackRow(track)
-
-                                if self.tappedTrack == track {
-                                    Spacer()
-
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                        .padding(.trailing)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .ciderRowOptimized()
-                    } else {
-                        trackRow(track)
-                            .ciderRowOptimized()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            } else {
-                Divider()
-                    .overlay { Color.white }
-                    .padding(.horizontal)
-
-                if #available(iOS 17.0, *) {
-                    ContentUnavailableView.search(text: searchText)
-                } else {
-                    VStack {
-                        Image(systemName: "exclamationmark.magnifyingglass")
-                            .imageScale(.large)
-                            .font(.title2)
-                            .padding(.bottom)
-
-                        Text("No results for \"\(searchText)\"")
-                            .font(.title3)
-                    }
                 }
             }
         }

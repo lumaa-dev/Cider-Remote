@@ -1,0 +1,243 @@
+// Made by Lumaa
+
+import SwiftUI
+
+struct LibraryAlbumView: View {
+    @EnvironmentObject private var device: Device
+
+    @State var album: LibraryAlbum
+
+    @State private var isLoading: Bool = true
+    @State private var multiDisc: Bool = false
+    @State private var sharingTrack: LibraryTrack? = nil
+    @State private var releaseDate: Date? = nil
+
+    init(_ album: LibraryAlbum) {
+        self.album = album
+    }
+
+    var body: some View {
+        ScrollView(.vertical) {
+            header
+
+            if isLoading || self.album.tracks == nil {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .padding(.top, 100)
+            } else {
+                LazyVStack {
+                    releaseEvent
+                        .padding(.vertical, 12.0)
+
+                    ForEach(self.album.tracks!) { track in
+                        Divider()
+
+                        if track.trackNumber == 1 && self.multiDisc {
+                            HStack {
+                                Image(.compactDisc)
+                                    .resizable()
+                                    .frame(width: 20, height: 20)
+                                    .padding(.trailing)
+
+                                Text("Disc \(track.discNumber)")
+                                    .font(.title2.bold())
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+
+                            Divider()
+                        }
+
+                        HStack {
+                            Button {
+                                Task {
+                                    await self.playHref(href: track.href)
+//                                    await self.clearQueue()
+//                                    self.playNext(from: track)
+//
+//                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+//                                        Task {
+//                                            await self.skipTrack()
+//                                        }
+//                                    }
+                                }
+                            } label: {
+                                LibraryTrackRow(track: track)
+                            }
+                            .disabled(track.catalogId == "[UNKNOWN]")
+                            .tint(Color(uiColor: UIColor.label))
+                            .buttonStyle(PlainButtonStyle())
+                            .contentShape(Rectangle())
+
+                            Spacer()
+
+                            Menu {
+                                Button {
+                                    self.sharingTrack = track
+                                } label: {
+                                    Label("Share", systemImage: "square.and.arrow.up")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                            }
+                            .disabled(track.catalogId == "[UNKNOWN]")
+                            .tint(Color(uiColor: UIColor.label))
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .padding(.horizontal)
+                    }
+                    Divider()
+                }
+                .padding(.top)
+            }
+        }
+        .navigationTitle(Text(album.title))
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            defer { self.isLoading = false }
+            self.album.tracks = await self.getTracks(from: self.album)
+
+            if let last = self.album.tracks?.map({ $0.discNumber }).last {
+                self.multiDisc = last > 1
+            }
+        }
+        .sheet(item: $sharingTrack) { t in
+            ActivityViewController(track: .init(from: t))
+                .presentationDetents([.medium, .large])
+        }
+    }
+
+    var header: some View {
+        LazyVStack {
+            AsyncImage(url: URL(string: album.artwork)) { image in
+                image
+                    .resizable()
+                    .frame(width: 220, height: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+            } placeholder: {
+                ZStack {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .zIndex(20)
+
+                    Rectangle()
+                        .fill(Color.gray)
+                        .clipShape(RoundedRectangle(cornerRadius: 7))
+                        .zIndex(10)
+                }
+                .frame(width: 220, height: 220)
+            }
+
+            Text(self.album.title)
+                .font(.body.bold())
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+
+            Text(self.album.artist)
+                .font(.body)
+                .lineLimit(1)
+                .foregroundStyle(Color.secondary)
+        }
+        .padding(.horizontal, 5.0)
+    }
+
+    @ViewBuilder
+    var releaseEvent: some View {
+        if let releaseDate {
+            VStack {
+                Text("Releases in...")
+                    .font(.callout)
+                    .lineLimit(1)
+                Text(releaseDate, style: .relative)
+                    .font(.title2.bold())
+            }
+            .padding()
+            .background(Color.cider)
+            .clipShape(RoundedRectangle(cornerRadius: 10.0))
+        }
+    }
+}
+
+extension LibraryAlbumView {
+    func playHref(href: String) async {
+        do {
+            _ = try await device.sendRequest(endpoint: "playback/play-item-href", method: "POST", body: ["href": href])
+        } catch {
+            print("Error playing track: \(error)")
+        }
+    }
+
+    func clearQueue() async {
+        do {
+            _ = try await device.sendRequest(endpoint: "playback/queue/clear-queue", method: "POST")
+        } catch {
+            print("Error clearing queue: \(error)")
+        }
+    }
+
+    func skipTrack() async {
+        do {
+            _ = try await device.sendRequest(endpoint: "playback/next", method: "POST")
+        } catch {
+            print("Error playing next track: \(error)")
+        }
+    }
+
+    func playNext(from playingTrack: LibraryTrack)  {
+        guard let tracks = self.album.tracks, let index: Int = tracks.firstIndex(of: playingTrack) else { return }
+
+        for track in tracks[index...tracks.count - 1] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                Task {
+                    do {
+                        let _ = try await device.sendRequest(endpoint: "playback/play-later", method: "POST", body: ["id": track.id, "type": "song"])
+                    } catch {
+                        print("Error playing next: \(error)")
+                    }
+                }
+            }
+        }
+    }
+
+    func getTracks(from album: LibraryAlbum) async -> [LibraryTrack] {
+        do {
+            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/albums/\(album.id)/tracks")
+            var libraries: [LibraryTrack] = []
+
+            if let arrayd = data as? [[String: Any]] {
+                for l in arrayd {
+                    libraries.append(.init(data: l, from: album))
+                }
+            }
+
+            if libraries.contains(where: { $0.catalogId == "[UNKNOWN]" }) {
+                if let available: LibraryTrack = libraries.first(where: { $0.catalogId != "[UNKNOWN]"}) {
+                    await self.getAlbum(using: available)
+                }
+            }
+
+            return libraries
+        } catch {
+            print("Error getting library: \(error)")
+        }
+
+        return []
+    }
+
+    func getAlbum(using track: LibraryTrack) async {
+        do {
+            guard let data = try await device.runAppleMusicAPI(path: "/v1/catalog/us/songs/\(track.catalogId)/albums") as? [[String: Any]] else { return }
+            if let attributes: [String: Any] = data[0]["attributes"] as? [String: Any], attributes["isPrerelease"] as? Int == 1 {
+                let dateFormat: DateFormatter = .init()
+                dateFormat.dateFormat = "YYYY-MM-dd"
+
+                if let dateString = attributes["releaseDate"] as? String {
+                    self.releaseDate = dateFormat.date(from: dateString)
+                }
+            }
+        } catch {
+            print("Error getting album details: \(error)")
+        }
+    }
+}

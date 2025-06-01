@@ -90,3 +90,66 @@ class Device: Identifiable, Codable, ObservableObject, Hashable {
         }
     }
 }
+
+extension Device {
+    func runAppleMusicAPI(path: String) async throws -> Any {
+        do {
+            let data = try await sendRequest(endpoint: "amapi/run-v3", method: "POST", body: ["path": path])
+            if let jsonDict = data as? [String: Any], let data = jsonDict["data"] as? [String: Any] {
+                if let subdata = data["data"] as? [String: Any] { // object
+                    return subdata
+                } else if let subdata = data["data"] as? [[String: Any]] { // array of objects
+                    return subdata
+                }
+            }
+
+            return data
+        } catch {
+            print("Error running Apple Music API: \(error)")
+            throw NetworkError.invalidResponse
+        }
+    }
+
+    func sendRequest(endpoint: String, method: String = "GET", body: [String: Any]? = nil) async throws -> Any {
+        let baseURL = self.connectionMethod == "tunnel"
+        ? "https://\(self.host)"
+        : "http://\(self.host):10767"
+        guard let url = URL(string: "\(baseURL)/api/v1/\(endpoint)") else {
+            throw NetworkError.invalidURL
+        }
+
+        print("Sending request to: \(url.absoluteString)")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.addValue(self.token, forHTTPHeaderField: "apptoken")
+
+        if let body = body {
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            print("Request body: \(body)")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        //        print("Response raw: \(String(data: data, encoding: .utf8) ?? "[No data]")")
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        print("Response status code: \(httpResponse.statusCode)")
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NetworkError.serverError("Server responded with status code \(httpResponse.statusCode)")
+        }
+
+        do {
+            let json = try JSONSerialization.jsonObject(with: data, options: [])
+            //            print("Received data: \(json)")
+            return json
+        } catch {
+            print(error)
+            throw NetworkError.decodingError
+        }
+    }
+}
