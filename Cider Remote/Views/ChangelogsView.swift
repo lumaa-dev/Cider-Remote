@@ -289,9 +289,11 @@ extension Changelog {
         temp = temp
             .setChanges(additions: [
                 "Library Browser!",
-                "Play a track from your recently added albums list",
-                "Track album releases"
+                "Play a track from your recently added albums list (more later...)",
+                "Track album releases with a countdown",
+                "iPad support!"
             ], modifications: [
+                "Fix: The queue or lyrics would close when changing vertical orientation, not anymore",
                 "Fix: Immersive Lyrics now enables only in landscape mode"
             ], removals: [
                 "Track search bar in the queue"
