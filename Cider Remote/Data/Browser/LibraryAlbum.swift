@@ -24,6 +24,10 @@ struct LibraryAlbum: Identifiable, Hashable {
         self.id = data["id"] as! String
         self.title = attributes["name"] as! String
         self.artist = attributes["artistName"] as! String
-        self.artwork = (artwork["url"] as! String).replacing(/\{(w|h)\}/, with: "\(artwork["width"] as! Int)")
+        if let w = artwork["width"] as? Int {
+            self.artwork = (artwork["url"] as! String).replacing(/\{(w|h)\}/, with: "\(w)")
+        } else {
+            self.artwork = artwork["url"] as! String
+        }
     }
 }

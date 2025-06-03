@@ -133,7 +133,9 @@ extension BrowserView {
 
             if let arrayd = data as? [[String: Any]] {
                 for l in arrayd {
-                    libraries.append(.init(data: l))
+                    if (l["type"] as? String ?? "[UNKNOWN]") == "library-albums" {
+                        libraries.append(.init(data: l))
+                    }
                 }
             }
 
