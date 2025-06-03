@@ -131,10 +131,7 @@ struct MusicPlayerView: View {
                 self.isCompact = newShow
             }
         }
-        .onChange(of: userDevice.orientation) { newOrientation in
-            let availableOrientations: [UIDeviceOrientation] = [.portrait, .landscapeLeft, .landscapeRight]
-            guard availableOrientations.contains(newOrientation) else { return }
-
+        .onChange(of: userDevice.horizontalOrientation) { _ in
             withAnimation(.spring) {
                 self.viewModel.showingQueue = false
                 self.viewModel.showingLyrics = false
