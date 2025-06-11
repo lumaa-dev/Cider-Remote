@@ -20,14 +20,16 @@ struct QueueView: View {
     var body: some View {
         ZStack {
             List {
-                BrowserView.access($librarySheet, background: colorPalette.primaryColor)
-                    .padding(.horizontal)
-                    .ciderRowOptimized()
+                if #available(iOS 26.0, *) {} else {
+                    BrowserView.access($librarySheet, background: colorPalette.primaryColor)
+                        .padding(.horizontal)
+                        .ciderRowOptimized()
 
-                Divider()
-                    .overlay { Color.white }
-                    .padding(.horizontal)
-                    .ciderRowOptimized()
+                    Divider()
+                        .overlay { Color.white }
+                        .padding(.horizontal)
+                        .ciderRowOptimized()
+                }
 
                 Section {
                     queueView
@@ -36,11 +38,18 @@ struct QueueView: View {
                 .ciderOptimized()
             }
             .ciderOptimized()
+            .fullScreenCover(isPresented: $librarySheet) {
+                BrowserView(device: viewModel.device)
+            }
+            .contentMargins(.vertical, UserDevice.shared.isBeta ? 60 : 0, for: .scrollContent)
+            .overlay(alignment: .top) {
+                if #available(iOS 26.0, *) {
+                    BrowserView.access($librarySheet, background: colorPalette.primaryColor)
+                        .padding(.horizontal)
+                }
+            }
         }
         .foregroundStyle(.primary)
-        .fullScreenCover(isPresented: $librarySheet) {
-            BrowserView(device: viewModel.device)
-        }
     }
 
     @ViewBuilder

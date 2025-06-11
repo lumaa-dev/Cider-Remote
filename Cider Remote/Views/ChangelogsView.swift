@@ -145,9 +145,16 @@ struct Changelog: Hashable, Identifiable {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(Color.cider)
+                        if #available(iOS 26.0, *) {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(Color(uiColor: UIColor.label))
+                                .padding(12)
+                                .glassEffect(.regular.interactive())
+                        } else {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(Color.cider)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity)

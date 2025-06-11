@@ -7,6 +7,21 @@ struct FullPrompt: View {
     let prompt: Prompt
 
     var body: some View {
+        if #available(iOS 26.0, *) {
+            new // sheet
+        } else {
+            old // middle
+        }
+    }
+
+    @available(iOS 26.0, *)
+    var new: some View {
+        prompt.view {
+            self.isShowing = false
+        }
+    }
+
+    var old: some View {
         ZStack {
             Color.black.opacity(0.6)
                 .edgesIgnoringSafeArea(.all)
@@ -16,6 +31,10 @@ struct FullPrompt: View {
                             self.isShowing = false
                         }
                     }
+                    .padding(24)
+                    .background(Color(UIColor.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(radius: 10)
                 )
         }
         .transition(.opacity)
@@ -57,28 +76,50 @@ struct Prompt {
                 Text(self.title)
                     .font(.title2.bold())
             }
+            .padding(.vertical, UserDevice.shared.isBeta ? 16 : 0)
 
             content
 
-            HStack(spacing: 16) {
-                if showCancel {
-                    Button("Cancel") {
+            if #available(iOS 26.0, *) {
+                Spacer()
+
+                VStack(spacing: 16) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(self.actionLabel)
+                            .foregroundStyle(Color.white)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .glassEffect(.regular.interactive().tint(Color.cider))
+                    }
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .foregroundStyle(Color(uiColor: UIColor.label))
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .glassEffect(.regular.interactive())
+                    }
+                }
+            } else {
+                HStack(spacing: 16) {
+                    if showCancel {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                    }
+
+                    Button(self.actionLabel) {
+                        self.action()
                         dismiss()
                     }
-                    .buttonStyle(SecondaryButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                 }
-
-                Button(self.actionLabel) {
-                    self.action()
-                    dismiss()
-                }
-                .buttonStyle(PrimaryButtonStyle())
             }
         }
-        .padding(24)
-        .background(Color(UIColor.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(radius: 10)
-        .frame(width: 320)
+        .frame(width: UserDevice.shared.isBeta ? nil : 320)
+        .padding(.horizontal, UserDevice.shared.isBeta ? nil : 0)
     }
 }

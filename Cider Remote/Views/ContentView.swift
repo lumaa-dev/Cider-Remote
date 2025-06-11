@@ -29,18 +29,18 @@ struct ContentView: View {
             }
             .tint(Color.cider)
 
-            if deviceListViewModel.showingNamePrompt {
-                FriendlyNamePromptView()
-                    .environmentObject(deviceListViewModel)
-            }
-            
-            if deviceListViewModel.showingOldDeviceAlert {
-                OldDeviceAlertView()
-                    .environmentObject(deviceListViewModel)
-            }
+            if #available(iOS 26.0, *) {} else {
+                if deviceListViewModel.showingNamePrompt {
+                    FriendlyNamePromptView()
+                        .environmentObject(deviceListViewModel)
+                }
 
-            if deviceListViewModel.showingCameraPrompt {
-                withAnimation {
+                if deviceListViewModel.showingOldDeviceAlert {
+                    OldDeviceAlertView()
+                        .environmentObject(deviceListViewModel)
+                }
+
+                if deviceListViewModel.showingCameraPrompt {
                     CameraPromptView()
                         .environmentObject(deviceListViewModel)
                 }
@@ -50,6 +50,12 @@ struct ContentView: View {
         .environmentObject(deviceListViewModel)
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+        }
+        .conditionalSheet(isPresented: $deviceListViewModel.showingCameraPrompt, condition: UserDevice.shared.isBeta) {
+            CameraPromptView()
+                .environmentObject(deviceListViewModel)
+                .environmentObject(colorScheme)
+                .presentationDetents([.medium])
         }
     }
 }
@@ -81,9 +87,9 @@ struct OldDeviceAlertView: View {
 }
 
 struct FriendlyNamePromptView: View {
-    @Environment(\.colorScheme) var systemColorScheme
+    @Environment(\.colorScheme) private var systemColorScheme
 
-    @EnvironmentObject var viewModel: DeviceListViewModel
+    @EnvironmentObject private var viewModel: DeviceListViewModel
 
     @State private var friendlyName: String = ""
 

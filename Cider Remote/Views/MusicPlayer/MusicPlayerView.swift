@@ -103,7 +103,7 @@ struct MusicPlayerView: View {
             }
             LiveActivityManager().stopActivity()
         }
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 Task {
                     viewModel.refreshCurrentTrack()
@@ -113,25 +113,25 @@ struct MusicPlayerView: View {
                 }
             }
         }
-        .onChange(of: systemColorScheme) { newColorScheme in
+        .onChange(of: systemColorScheme) { _, newColorScheme in
             colorScheme.updateColorScheme(newColorScheme)
         }
-        .onChange(of: viewModel.needsColorUpdate) { needsUpdate in
+        .onChange(of: viewModel.needsColorUpdate) { _, needsUpdate in
             if needsUpdate && colorScheme.useAdaptiveColors {
                 updateColors()
             }
         }
-        .onChange(of: viewModel.showingQueue) { newShow in
+        .onChange(of: viewModel.showingQueue) { _, newShow in
             withAnimation(.spring) {
                 self.isCompact = newShow
             }
         }
-        .onChange(of: viewModel.showingLyrics) { newShow in
+        .onChange(of: viewModel.showingLyrics) { _, newShow in
             withAnimation(.spring) {
                 self.isCompact = newShow
             }
         }
-        .onChange(of: userDevice.horizontalOrientation) { _ in
+        .onChange(of: userDevice.horizontalOrientation) { _, _ in
             withAnimation(.spring) {
                 self.viewModel.showingQueue = false
                 self.viewModel.showingLyrics = false
@@ -239,11 +239,20 @@ struct MusicPlayerView: View {
                         }
                 } else if viewModel.showingQueue {
                     if #available(iOS 17.0, *) {
-                        ContentUnavailableView(
-                            "Oops!",
-                            systemImage: "iphone.gen3.landscape",
-                            description: Text("Seems like you can't view your queue in landscape mode YET...")
-                        )
+                        ContentUnavailableView {
+                            Label("Oops!", systemImage: "iphone.gen3.landscape")
+                        } description: {
+                            Text("Seems like you can't view your queue in landscape mode YET...")
+                        } actions: {
+                            Button {
+                                withAnimation {
+                                    self.viewModel.showingQueue.toggle()
+                                }
+                            } label: {
+                                Text("Close Queue")
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
                     } else {
                         VStack {
                             Text("Oops!")
@@ -252,6 +261,16 @@ struct MusicPlayerView: View {
                             Text("Seems like you can't view your queue in landscape mode YET...")
                                 .font(.caption)
                                 .foregroundStyle(Color.secondary)
+
+                            Button {
+                                withAnimation {
+                                    self.viewModel.showingQueue.toggle()
+                                }
+                            } label: {
+                                Text("Close Queue")
+                            }
+                            .buttonStyle(.bordered)
+                            .padding(.top)
                         }
                     }
                 }
@@ -268,9 +287,16 @@ struct MusicPlayerView: View {
                 }
             }
         } label: {
-            Image(systemName: "xmark.circle.fill")
-                .foregroundStyle(Color.white.opacity(0.4))
-                .font(.system(size: 28))
+            if #available(iOS 26.0, *) {
+                Image(systemName: "xmark")
+                    .foregroundStyle(Color(uiColor: UIColor.label))
+                    .padding(12)
+                    .glassEffect(.regular.interactive())
+            } else {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(Color.white.opacity(0.4))
+                    .font(.system(size: 28))
+            }
         }
     }
 

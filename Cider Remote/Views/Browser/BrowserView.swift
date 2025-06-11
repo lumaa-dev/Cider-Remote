@@ -32,6 +32,8 @@ struct BrowserView: View {
                 library
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: UIColor.systemBackground))
         .task {
             defer { self.isLoading = false }
             self.albums = await self.getLibrary()
@@ -59,14 +61,21 @@ struct BrowserView: View {
                         offset += 10
                     }
                 } label: {
-                    Text("Load 10 more")
-                        .foregroundStyle(Color.cider)
-                        .padding(.vertical, 10.0)
-                        .padding(.horizontal, 25.0)
-                        .background(Material.ultraThin)
-                        .clipShape(RoundedRectangle(cornerRadius: 7.0))
+                    if #available(iOS 26.0, *) {
+                        Text("Load 10 more")
+                            .padding(.vertical, 10.0)
+                            .padding(.horizontal, 25.0)
+                            .glassEffect(.regular.interactive())
+                    } else {
+                        Text("Load 10 more")
+                            .foregroundStyle(Color.cider)
+                            .padding(.vertical, 10.0)
+                            .padding(.horizontal, 25.0)
+                            .background(Material.ultraThin)
+                            .clipShape(RoundedRectangle(cornerRadius: 7.0))
+                    }
                 }
-                .buttonStyle(SpringyButtonStyle())
+                .plainGlassButton()
                 .disabled(self.isLoadingMore)
                 .padding(.top, 15.0)
                 .padding(.bottom, 5.0)
@@ -83,8 +92,8 @@ struct BrowserView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
+                            .foregroundStyle(UserDevice.shared.isBeta ? Color(uiColor: UIColor.label) : Color.cider)
                     }
-                    .tint(Color.cider)
                 }
             }
         }
@@ -96,32 +105,47 @@ struct BrowserView: View {
         Button {
             sheetVisible.wrappedValue.toggle()
         } label: {
-            HStack(alignment: .center, spacing: 14) {
-                Image(systemName: "play.square.stack.fill")
-                    .imageScale(.large)
-                    .foregroundStyle(Color.white)
+            if #available(iOS 26.0, *) {
+                HStack(alignment: .center, spacing: 14) {
+                    Image(systemName: "play.square.stack.fill")
+                        .imageScale(.large)
+                        .foregroundStyle(Color.white)
 
-                Text("View Library")
-                    .font(.body.bold())
-                    .foregroundStyle(Color.white)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, minHeight: 50)
-            .background {
-                ZStack {
-                    Rectangle()
-                        .fill(Material.ultraThin)
-                        .zIndex(10)
-
-                    Rectangle()
-                        .fill(background.gradient)
-                        .opacity(0.6)
-                        .zIndex(1)
+                    Text("View Library")
+                        .font(.body.bold())
+                        .foregroundStyle(Color.white)
+                        .lineLimit(1)
                 }
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .glassEffect(.regular.interactive())
+            } else {
+                HStack(alignment: .center, spacing: 14) {
+                    Image(systemName: "play.square.stack.fill")
+                        .imageScale(.large)
+                        .foregroundStyle(Color.white)
+
+                    Text("View Library")
+                        .font(.body.bold())
+                        .foregroundStyle(Color.white)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .background {
+                    ZStack {
+                        Rectangle()
+                            .fill(Material.ultraThin)
+                            .zIndex(10)
+
+                        Rectangle()
+                            .fill(background.gradient)
+                            .opacity(0.6)
+                            .zIndex(1)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .buttonStyle(SpringyButtonStyle())
+        .plainGlassButton()
     }
 }
 

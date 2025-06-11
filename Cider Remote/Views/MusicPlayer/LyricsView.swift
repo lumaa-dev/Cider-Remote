@@ -72,13 +72,22 @@ struct LyricsView: View {
                             }
                             .overlay(alignment: .bottom) {
                                 if let lyricProviderString {
-                                    Text(lyricProviderString)
-                                        .font(.callout)
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 7.5)
-                                        .background(Material.thin)
-                                        .clipShape(.rect(cornerRadius: 15.5))
-                                        .padding(.bottom, 22.5)
+                                    if #available(iOS 26.0, *) {
+                                        Text(lyricProviderString)
+                                            .font(.callout)
+                                            .padding(.horizontal)
+                                            .padding(.vertical, 7.5)
+                                            .glassEffect(.regular, in: .capsule)
+                                            .padding(.bottom, 22.5)
+                                    } else {
+                                        Text(lyricProviderString)
+                                            .font(.callout)
+                                            .padding(.horizontal)
+                                            .padding(.vertical, 7.5)
+                                            .background(Material.thin)
+                                            .clipShape(.capsule)
+                                            .padding(.bottom, 22.5)
+                                    }
                                 }
                             }
                         }
@@ -102,7 +111,7 @@ struct LyricsView: View {
                 }
             }
         }
-        .onChange(of: viewModel.currentTime) { newTime in
+        .onChange(of: viewModel.currentTime) { _, newTime in
             updateCurrentLyric(time: newTime + lyricAdvanceTime)
         }
     }
@@ -144,7 +153,7 @@ struct LyricsScrollView: View {
                         Spacer(minLength: viewportHeight - 180) // Remaining space below lyrics
                     }
                 }
-                .onChange(of: activeLine) { newActiveLine in
+                .onChange(of: activeLine) { _, newActiveLine in
                     if let newActiveLine = newActiveLine, !isDragging {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             if let index = lyrics.firstIndex(of: newActiveLine), index > 0 {
@@ -169,7 +178,7 @@ struct LyricsScrollView: View {
         .onAppear {
             updateActiveLine()
         }
-        .onChange(of: currentTime) { _ in
+        .onChange(of: currentTime) { _, _ in
             updateActiveLine()
         }
     }
@@ -197,14 +206,14 @@ struct ImmersiveLyricsView: View {
                 .onAppear {
                     updateActiveLine()
                 }
-                .onChange(of: currentTime) { _ in
+                .onChange(of: currentTime) { _, _ in
                     updateActiveLine()
                 }
         }
     }
 
     private func updateActiveLine() {
-        withAnimation(.easeInOut.speed(0.7)) {
+        withAnimation(.easeInOut.speed(0.85)) {
             activeLine = lyrics.last { $0.timestamp <= currentTime + 0.5 }
         }
     }

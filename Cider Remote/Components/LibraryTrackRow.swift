@@ -26,6 +26,5 @@ struct LibraryTrackRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 5.0)
     }
 }

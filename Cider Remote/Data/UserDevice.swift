@@ -40,6 +40,14 @@ class UserDevice: ObservableObject {
         UIDevice.current.userInterfaceIdiom == .pad
     }
 
+    var isBeta: Bool {
+        if #available(iOS 26.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     init() {}
 
     enum HorizontalOrientation {

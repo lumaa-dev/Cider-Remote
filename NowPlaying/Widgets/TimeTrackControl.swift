@@ -13,10 +13,10 @@ struct TimeTrackControl: ControlWidget {
             let device = config.device ?? .placeholder
 
             ControlWidgetButton(
-                "\(config.action.localizedStringResource)",
-                action: TimeTrackIntent(device: device, timeAction: config.action)
+                "\(config.action?.localizedStringResource ?? TimeTrack.skip.localizedStringResource)",
+                action: TimeTrackIntent(device: device, timeAction: config.action ?? .skip)
             ) { bool in
-                Label(device.name, systemImage: config.action.systemImage)
+                Label(device.name, systemImage: config.action?.systemImage ?? "questionmark.app.dashed")
             }
             .tint(Color.cider)
         }
@@ -33,7 +33,7 @@ struct TimeTrackControl: ControlWidget {
         var device: DeviceEntity?
 
         @Parameter(title: "Action")
-        var action: TimeTrack
+        var action: TimeTrack?
 
         init(device: DeviceEntity, timeAction: TimeTrack = .skip) {
             self.device = device

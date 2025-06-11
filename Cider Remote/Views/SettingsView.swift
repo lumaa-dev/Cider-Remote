@@ -90,7 +90,7 @@ struct SettingsView: View {
                             Text("Refresh Interval: \(Int(refreshInterval)) seconds")
                         }
                         .disabled(!autoRefresh)
-                        .onChange(of: refreshInterval) { _ in
+                        .onChange(of: refreshInterval) { _, _ in
                             let impact = UIImpactFeedbackGenerator(style: .light) //MARK: API is deprecated
                             impact.impactOccurred()
                         }

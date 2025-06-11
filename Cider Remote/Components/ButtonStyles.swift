@@ -128,3 +128,15 @@ struct ResponsiveButtonStyle: ButtonStyle {
             .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
+
+extension Button {
+    @ViewBuilder
+    func plainGlassButton() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            self
+                .buttonStyle(.plain)
+        }
+    }
+}

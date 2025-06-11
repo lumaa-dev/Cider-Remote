@@ -68,7 +68,7 @@ struct AddDeviceView: View {
             }
 #endif
         }
-        .onChange(of: scannedCode) { newValue in
+        .onChange(of: scannedCode) { _, newValue in
             if let code = newValue {
                 viewModel.fetchDevices(from: code)
                 isShowingScanner = false

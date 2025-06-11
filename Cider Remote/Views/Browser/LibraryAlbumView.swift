@@ -11,6 +11,7 @@ struct LibraryAlbumView: View {
     @State private var multiDisc: Bool = false
     @State private var sharingTrack: LibraryTrack? = nil
     @State private var releaseDate: Date? = nil
+    @State private var sharingImage: UIImage? = nil
 
     init(_ album: LibraryAlbum) {
         self.album = album
@@ -53,17 +54,18 @@ struct LibraryAlbumView: View {
                             Button {
                                 Task {
                                     await self.playHref(href: track.href)
-//                                    await self.clearQueue()
-//                                    self.playNext(from: track)
-//
-//                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-//                                        Task {
-//                                            await self.skipTrack()
-//                                        }
-//                                    }
+                                    //                                    await self.clearQueue()
+                                    //                                    self.playNext(from: track)
+                                    //
+                                    //                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    //                                        Task {
+                                    //                                            await self.skipTrack()
+                                    //                                        }
+                                    //                                    }
                                 }
                             } label: {
                                 LibraryTrackRow(track: track)
+                                    .padding(.vertical, UserDevice.shared.isBeta ? 15.0 : 5.0)
                             }
                             .disabled(track.catalogId == "[UNKNOWN]")
                             .tint(Color(uiColor: UIColor.label))
@@ -103,7 +105,7 @@ struct LibraryAlbumView: View {
             }
         }
         .sheet(item: $sharingTrack) { t in
-            ActivityViewController(track: .init(from: t))
+            ActivityViewController(item: .track(track: .init(from: t)))
                 .presentationDetents([.medium, .large])
         }
     }
@@ -128,6 +130,27 @@ struct LibraryAlbumView: View {
                 }
                 .frame(width: 220, height: 220)
             }
+            .contextMenu {
+                Button {
+                    Task {
+                        guard let url = URL(string: album.artwork),
+                              let (data, _) = try? await URLSession.shared.data(from: url),
+                              let image = UIImage(data: data) else {
+                            return
+                        }
+                        self.sharingImage = image
+                    }
+                } label: {
+                    Label("Share image", systemImage: "square.and.arrow.up")
+                }
+            }
+            .sheet(item: Binding<UIImage?>(
+                get: { sharingImage },
+                set: { newValue in sharingImage = newValue }
+            )) { image in
+                ActivityViewController(item: .image(images: [image]))
+                    .presentationDetents([.medium, .large])
+            }
 
             Text(self.album.title)
                 .font(.body.bold())
@@ -147,15 +170,24 @@ struct LibraryAlbumView: View {
         if let releaseDate {
             VStack {
                 Text("Releases in...")
+                    .foregroundStyle(Color.white)
                     .font(.callout)
                     .lineLimit(1)
+
                 Text(releaseDate, style: .relative)
+                    .foregroundStyle(Color.white)
                     .font(.title2.bold())
             }
             .padding()
             .background(Color.cider)
             .clipShape(RoundedRectangle(cornerRadius: 10.0))
         }
+    }
+}
+
+extension UIImage: @retroactive Identifiable {
+    public var id: UUID {
+        UUID()
     }
 }
 
