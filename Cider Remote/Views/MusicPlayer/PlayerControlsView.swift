@@ -169,7 +169,7 @@ struct AdditionalControls: View {
         .tint(Color.white)
         .sheet(isPresented: $isSharing) {
             if let currentTrack = viewModel.currentTrack {
-                ActivityViewController(track: currentTrack)
+                ActivityViewController(item: .track(track: currentTrack))
                     .presentationDetents([.medium, .large])
             } else {
                 Text("Nothing to share")

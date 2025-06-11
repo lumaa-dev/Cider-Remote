@@ -65,10 +65,10 @@ struct TogglePlayButtonIntent: AppIntent {
         let devices: [DeviceEntity] = try await DeviceQuery().suggestedEntities()
 
         for device in devices {
-            let (statusCode, _) = try await device.sendRequest(endpoint: "playback/active")
+            let (statusCode, _) = await device.sendRequest(endpoint: "playback/active")
 
             if statusCode == 200 {
-                (_, _) = try await device.sendRequest(endpoint: "playback/playpause", method: "POST")
+                (_, _) = await device.sendRequest(endpoint: "playback/playpause", method: "POST")
                 if #available(iOS 18.0, *) {
                     ControlCenter.shared.reloadControls(ofKind: "sh.cider.CiderRemote.PlayPauseControl")
                 }

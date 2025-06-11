@@ -6,7 +6,7 @@ struct ChangelogsView: View {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
     @Environment(\.openURL) private var openURL: OpenURLAction
 
-    private static let changelogs: [Changelog] = [.v303, .v302, .v301, .v300]
+    private static let changelogs: [Changelog] = [.v310, .v303, .v302, .v301, .v300]
 
     @State private var selectedChangelog: Changelog? = nil
 
@@ -290,6 +290,25 @@ struct Changelog: Hashable, Identifiable {
 // MARK: Changelogs are HERE
 
 extension Changelog {
+    /// Remote 3.1.0
+    static var v310: Changelog {
+        var temp = Changelog(version: "3.1.0", authors: ["Lumaa"], commits: nil)
+        temp = temp
+            .setChanges(additions: [
+                "iOS 26 support",
+                "Liquid Glass design"
+            ], modifications: [
+                "The \"View Library\" button is now Liquid Glass on iOS 26",
+                "The \"View Library\" button is now pinned at the top of the queue on iOS 26",
+                "All prompts are now sheets on iOS 26",
+                "Lyric provider is now Liquid Glass on iOS 26",
+                "Share album covers from the Library Browser"
+            ], removals: [
+                "All iOS 16 devices are now unsupported by Cider Remote due to the limitations of Swift"
+            ])
+        return temp.setNotes(headerNote: "Cider Remote goes through its Liquid Glass revolution thanks to iOS 26")
+    }
+
     /// Remote 3.0.3
     static var v303: Changelog {
         var temp = Changelog(version: "3.0.3", authors: ["Lumaa"], commits: nil)

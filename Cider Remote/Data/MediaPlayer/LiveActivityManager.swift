@@ -47,7 +47,7 @@ class LiveActivityManager {
         guard let activity else { return }
         await activity
             .update(
-                using: content,
+                .init(state: content, staleDate: nil),
                 alertConfiguration: alertLiveActivity ? .init(
                     title: "Cider Remote",
                     body: "Now Playing: \(content.trackInfo.title) by \(content.trackInfo.artist)",
@@ -61,7 +61,7 @@ class LiveActivityManager {
         guard let activity else { return }
         await activity
             .update(
-                using: .init(trackInfo: track),
+                .init(state: .init(trackInfo: track), staleDate: nil),
                 alertConfiguration: alertLiveActivity ? .init(
                     title: "Cider Remote",
                     body: "Now Playing: \(track.title) by \(track.artist)",
