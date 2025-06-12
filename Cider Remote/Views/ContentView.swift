@@ -51,6 +51,18 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
+        .conditionalSheet(isPresented: $deviceListViewModel.showingOldDeviceAlert, condition: UserDevice.shared.isBeta) {
+            OldDeviceAlertView()
+                .environmentObject(deviceListViewModel)
+                .environmentObject(colorScheme)
+                .presentationDetents([.medium])
+        }
+        .conditionalSheet(isPresented: $deviceListViewModel.showingNamePrompt, condition: UserDevice.shared.isBeta) {
+            FriendlyNamePromptView()
+                .environmentObject(deviceListViewModel)
+                .environmentObject(colorScheme)
+                .presentationDetents([.medium])
+        }
         .conditionalSheet(isPresented: $deviceListViewModel.showingCameraPrompt, condition: UserDevice.shared.isBeta) {
             CameraPromptView()
                 .environmentObject(deviceListViewModel)
