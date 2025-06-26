@@ -296,17 +296,24 @@ extension Changelog {
         temp = temp
             .setChanges(additions: [
                 "iOS 26 support",
-                "Liquid Glass design"
+                "Liquid Glass design",
+                "Access your playlist in the Library Browser",
+                "New setting \"Always-on Immersive\" to keep the device on when using the Horizontal Layout",
+                "A \"Close\" button in the queue in Horizontal Layout"
             ], modifications: [
                 "The \"View Library\" button is now Liquid Glass on iOS 26",
                 "The \"View Library\" button is now pinned at the top of the queue on iOS 26",
                 "All prompts are now sheets on iOS 26",
                 "Lyric provider is now Liquid Glass on iOS 26",
-                "Share album covers from the Library Browser"
+                "Share album covers from the Library Browser",
+                "Major improvements in Cider devices handling",
+                "Fix: Immersive Lyrics don't instantly jump from one lyric to another",
+                "Fix: Cider icon would clip through the Live Activity on macOS Tahoe 26"
             ], removals: [
-                "All iOS 16 devices are now unsupported by Cider Remote due to the limitations of Swift"
+                "All iOS 16 devices are now unsupported by Cider Remote due to the limitations of Swift",
+                "\"Auto-refresh\" setting, force enabled now"
             ])
-        return temp.setNotes(headerNote: "Cider Remote goes through its Liquid Glass revolution thanks to iOS 26")
+        return temp.setNotes(headerNote: "Cider Remote goes through its Liquid Glass revolution thanks to iOS 26", footerNote: "This update will be available on the App Store only in September 2025")
     }
 
     /// Remote 3.0.3
