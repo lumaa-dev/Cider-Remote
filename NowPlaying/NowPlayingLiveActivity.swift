@@ -32,7 +32,7 @@ struct NowPlayingLiveActivity: Widget {
             } compactLeading: {
                 Image("Logo")
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
             } compactTrailing: {
                 Image(systemName: "waveform")
                     .font(.title2)
@@ -40,7 +40,7 @@ struct NowPlayingLiveActivity: Widget {
             } minimal: {
                 Image("Logo")
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
             }
             .keylineTint(Color.pink)
         }

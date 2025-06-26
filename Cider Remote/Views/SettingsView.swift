@@ -14,11 +14,11 @@ struct SettingsView: View {
     @AppStorage("albumArtSize") private var albumArtSize: ElementSize = .large
 
     // advanced
+    @AppStorage("alwaysOn") private var alwaysOn: Bool = false
     @AppStorage("alertLiveActivity") private var alertLiveActivity: Bool = false
 
     // devices
     @AppStorage("deviceDetails") private var deviceDetails: Bool = false
-    @AppStorage("autoRefresh") private var autoRefresh: Bool = true
     @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
 
     var body: some View {
@@ -61,6 +61,7 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Advanced")) {
+                    Toggle("Always-on Immersive", isOn: $alwaysOn)
                     Toggle(isOn: $alertLiveActivity) {
                         HStack(spacing: 8.0) {
                             unstablePill
@@ -73,12 +74,11 @@ struct SettingsView: View {
                 Section(header: Text("Devices")) {
                     Toggle("Device Information", isOn: $deviceDetails)
 //                    Button("Reset All Devices", role: .destructive, action: resetAllDevices)
-                    Toggle("Automatically Refresh", isOn: $autoRefresh)
 
                     VStack(alignment: .leading) {
                         HStack(alignment: .center) {
                             Text("Refresh Interval")
-                                .foregroundStyle(autoRefresh ? Color(uiColor: UIColor.label) : Color.gray)
+                                .foregroundStyle(Color(uiColor: UIColor.label))
                             Spacer()
                             Text("\(Int(refreshInterval)) seconds")
                                 .font(.caption)
@@ -88,7 +88,6 @@ struct SettingsView: View {
                         Slider(value: $refreshInterval, in: 5...60, step: 5) {
                             Text("Refresh Interval: \(Int(refreshInterval)) seconds")
                         }
-                        .disabled(!autoRefresh)
                         .onChange(of: refreshInterval) { _, _ in
                             let impact = UIImpactFeedbackGenerator(style: .light) //MARK: API is deprecated
                             impact.impactOccurred()

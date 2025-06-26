@@ -111,6 +111,8 @@ struct LyricsView: View {
                 }
             }
         }
+        .onDisappear {
+        }
         .onChange(of: viewModel.currentTime) { _, newTime in
             updateCurrentLyric(time: newTime + lyricAdvanceTime)
         }
@@ -121,7 +123,10 @@ struct LyricsView: View {
             activeLine = nil
             return
         }
-        activeLine = currentLine
+
+        withAnimation(.easeInOut.speed(0.85)) {
+            activeLine = currentLine
+        }
     }
 }
 
@@ -165,28 +170,6 @@ struct LyricsScrollView: View {
             }
         }
         .frame(height: viewportHeight)
-        .gesture(
-            DragGesture()
-                .onChanged { _ in isDragging = true }
-                .onEnded { _ in
-                    isDragging = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        self.updateActiveLine()
-                    }
-                }
-        )
-        .onAppear {
-            updateActiveLine()
-        }
-        .onChange(of: currentTime) { _, _ in
-            updateActiveLine()
-        }
-    }
-
-    private func updateActiveLine() {
-        if !isDragging {
-            activeLine = lyrics.last { $0.timestamp <= currentTime + 0.5 }
-        }
     }
 }
 
@@ -203,18 +186,6 @@ struct ImmersiveLyricsView: View {
                 .contentTransition(.numericText(countsDown: true))
                 .frame(maxHeight: .infinity, alignment: .center)
                 .multilineTextAlignment(.center)
-                .onAppear {
-                    updateActiveLine()
-                }
-                .onChange(of: currentTime) { _, _ in
-                    updateActiveLine()
-                }
-        }
-    }
-
-    private func updateActiveLine() {
-        withAnimation(.easeInOut.speed(0.85)) {
-            activeLine = lyrics.last { $0.timestamp <= currentTime + 0.5 }
         }
     }
 }

@@ -5,11 +5,11 @@ import SwiftUI
 struct DevicesView: View {
     @Environment(\.dismiss) private var dismiss: DismissAction
 
-    @StateObject private var deviceManager: DeviceManager = .shared
-
+    private var devices: [Device] {
+        DeviceManager.shared.devices
+    }
     @State var isRefreshing: Bool = false
 
-    @AppStorage("autoRefresh") private var autoRefresh: Bool = true
     @AppStorage("refreshInterval") private var refreshInterval: Double = 10.0
 
     @State private var scannedCode: String?
@@ -23,51 +23,15 @@ struct DevicesView: View {
             header
 
             List {
-                ForEach(deviceManager.devices) { device in
-                    if device.isActive {
-                        NavigationLink(value: device) {
-                            DeviceRowView(device: device)
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                deviceManager.remove(device)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    } else {
-                        if autoRefresh {
-                            DeviceRowView(device: device)
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        deviceManager.remove(device)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                        } else {
-                            Button {
-                                Task {
-                                    await self.refreshDevice(device)
-                                }
-                            } label: {
-                                HStack {
-                                    DeviceRowView(device: device)
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.forward")
-                                        .foregroundStyle(Color(uiColor: UIColor.tertiaryLabel))
-                                }
-                            }
-                            .tint(Color(uiColor: UIColor.label))
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    deviceManager.remove(device)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
+                ForEach(devices) { device in
+                    NavigationLink(value: device) {
+                        DeviceRowView(device: device)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            DeviceManager.shared.remove(device)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                 }
@@ -130,8 +94,8 @@ struct DevicesView: View {
     func refreshDevices() async {
         isRefreshing = true
 
-        for device in deviceManager.devices {
-            await deviceManager.checkDeviceActivity(device)
+        for device in DeviceManager.shared.devices {
+            await DeviceManager.shared.checkDeviceActivity(device)
         }
 
         // Simulate a slight delay to show the refresh indicator
@@ -143,7 +107,7 @@ struct DevicesView: View {
     func refreshDevice(_ device: Device) async {
         isRefreshing = true
 
-        await deviceManager.checkDeviceActivity(device)
+        await DeviceManager.shared.checkDeviceActivity(device)
 
         // Simulate a slight delay to show the refresh indicator
         try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -177,21 +141,17 @@ struct DevicesView: View {
     }
 
     func startActivityChecking() {
-        guard autoRefresh else { return }
-
         stopActivityChecking() // Ensure we're not running multiple timers
 
         // Schedule refreshes based on the refresh interval
         activityCheckTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { _ in
-            for device in deviceManager.devices {
-                Task { await deviceManager.checkDeviceActivity(device) }
+            for device in DeviceManager.shared.devices {
+                Task { await DeviceManager.shared.checkDeviceActivity(device) }
             }
         }
     }
 
     func stopActivityChecking() {
-        guard autoRefresh else { return }
-
         activityCheckTimer?.invalidate()
         activityCheckTimer = nil
     }

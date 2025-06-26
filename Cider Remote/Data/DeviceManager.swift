@@ -37,7 +37,15 @@ class DeviceManager: ObservableObject {
     }
 
     func checkDeviceActivity(_ device: Device) async {
-        defer { device.isRefreshing = false }
+        await MainActor.run {
+            device.isRefreshing = true
+        }
+
+        defer {
+            Task { @MainActor in
+                device.isRefreshing = false
+            }
+        }
 
         guard let url = URL(string: "\(device.fullAddress)/api/v1/playback/active") else {
             print("Invalid URL for device: \(device.friendlyName)")
@@ -47,12 +55,15 @@ class DeviceManager: ObservableObject {
         var request = URLRequest(url: url)
         request.addValue(device.token, forHTTPHeaderField: "apptoken")
 
-        device.isRefreshing = true
-
-        if let activity = try? await URLSession.shared.data(for: request), let httpurl: HTTPURLResponse = activity.1 as? HTTPURLResponse {
-            device.isActive = httpurl.statusCode == 200
+        if let activity = try? await URLSession.shared.data(for: request),
+           let httpurl: HTTPURLResponse = activity.1 as? HTTPURLResponse {
+            await MainActor.run {
+                device.isActive = httpurl.statusCode == 200
+            }
         } else {
-            device.isActive = false
+            await MainActor.run {
+                device.isActive = false
+            }
         }
     }
 

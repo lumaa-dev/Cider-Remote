@@ -11,7 +11,7 @@ struct BrowserView: View {
     @State private var isLoadingMore: Bool = false
     @State private var offset: Int = 10
 
-    @State private var albums: [LibraryAlbum] = []
+    @State private var elms: [LibraryElement] = []
 
     private let columns = UserDevice.shared.isPad ? [
         GridItem(.flexible()),
@@ -30,23 +30,35 @@ struct BrowserView: View {
                     .progressViewStyle(.circular)
             } else {
                 library
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: UIColor.systemBackground))
         .task {
             defer { self.isLoading = false }
-            self.albums = await self.getLibrary()
+            self.elms = await self.getLibrary()
         }
     }
 
     var library: some View {
         NavigationStack {
             ScrollView(.vertical) {
+                tabs
+                Divider()
+
                 LazyVGrid(columns: columns, alignment: .center) {
-                    ForEach(self.albums) { album in
-                        NavigationLink(value: album) {
-                            LibraryAlbumRow(album: album)
+                    ForEach(self.elms) { elm in
+                        NavigationLink(value: elm) {
+                            switch elm {
+                                case .album(let a):
+                                    LibraryRow(from: a)
+                                case .playlist(let p):
+                                    LibraryRow(from: p)
+                                default:
+                                    EmptyView()
+                            }
+
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
@@ -57,7 +69,7 @@ struct BrowserView: View {
 
                     Task {
                         defer { self.isLoadingMore = false }
-                        self.albums.append(contentsOf: await self.getLibrary(offset: offset))
+                        self.elms.append(contentsOf: await self.getLibrary(offset: offset))
                         offset += 10
                     }
                 } label: {
@@ -82,9 +94,18 @@ struct BrowserView: View {
             }
             .navigationTitle(Text("Recently Added"))
             .navigationBarTitleDisplayMode(.large)
-            .navigationDestination(for: LibraryAlbum.self) { album in
-                LibraryAlbumView(album)
-                    .environmentObject(device)
+            .navigationDestination(for: LibraryElement.self) { elm in
+                ZStack {
+                    switch elm {
+                        case .album(let a):
+                            LibraryAlbumView(a)
+                        case .playlist(let p):
+                            LibraryPlaylistView(p)
+                        case .tab(let t):
+                            BrowserTabView(t)
+                    }
+                }
+                .environmentObject(device)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -98,6 +119,22 @@ struct BrowserView: View {
             }
         }
         .tint(Color.cider)
+    }
+
+    @ViewBuilder
+    private var tabs: some View {
+        ForEach(BrowserTab.allCases) { tab in
+            Divider()
+            NavigationLink(value: LibraryElement.tab(tab)) {
+                ZStack(alignment: .leading) {
+                    tab.view
+                        .padding(.leading)
+                        .padding(.vertical, 5.0)
+                        .foregroundStyle(Color.cider)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
 
     @ViewBuilder
@@ -150,15 +187,18 @@ struct BrowserView: View {
 }
 
 extension BrowserView {
-    func getLibrary(offset: Int = 0) async -> [LibraryAlbum] {
+    func getLibrary(offset: Int = 0) async -> [LibraryElement] {
         do {
-            let data = try await runAppleMusicAPI(path: "/v1/me/library/recently-added?offset=\(offset)")
-            var libraries: [LibraryAlbum] = []
+            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/recently-added?offset=\(offset)")
+            var libraries: [LibraryElement] = []
 
             if let arrayd = data as? [[String: Any]] {
                 for l in arrayd {
-                    if (l["type"] as? String ?? "[UNKNOWN]") == "library-albums" {
-                        libraries.append(.init(data: l))
+                    let type: String = (l["type"] as? String ?? "[UNKNOWN]")
+                    if type == "library-albums" {
+                        libraries.append(.album(.init(data: l)))
+                    } else if type == "library-playlists" {
+                        libraries.append(.playlist(.init(data: l)))
                     }
                 }
             }
@@ -170,65 +210,5 @@ extension BrowserView {
 
         return []
     }
-
-    func runAppleMusicAPI(path: String) async throws -> Any {
-        do {
-            let data = try await sendRequest(endpoint: "amapi/run-v3", method: "POST", body: ["path": path])
-            if let jsonDict = data as? [String: Any], let data = jsonDict["data"] as? [String: Any] {
-                if let subdata = data["data"] as? [String: Any] { // object
-                    return subdata
-                } else if let subdata = data["data"] as? [[String: Any]] { // array of objects
-                    return subdata
-                }
-            }
-
-            return data
-        } catch {
-            print("Error running Apple Music API: \(error)")
-            throw NetworkError.invalidResponse
-        }
-    }
-
-    private func sendRequest(endpoint: String, method: String = "GET", body: [String: Any]? = nil) async throws -> Any {
-        let baseURL = device.connectionMethod == "tunnel"
-        ? "https://\(device.host)"
-        : "http://\(device.host):10767"
-        guard let url = URL(string: "\(baseURL)/api/v1/\(endpoint)") else {
-            throw NetworkError.invalidURL
-        }
-
-        print("Sending request to: \(url.absoluteString)")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.addValue(device.token, forHTTPHeaderField: "apptoken")
-
-        if let body = body {
-            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-            print("Request body: \(body)")
-        }
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        //        print("Response raw: \(String(data: data, encoding: .utf8) ?? "[No data]")")
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-
-        print("Response status code: \(httpResponse.statusCode)")
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NetworkError.serverError("Server responded with status code \(httpResponse.statusCode)")
-        }
-
-        do {
-            let json = try JSONSerialization.jsonObject(with: data, options: [])
-            //            print("Received data: \(json)")
-            return json
-        } catch {
-            print(error)
-            throw NetworkError.decodingError
-        }
-    }
 }
+

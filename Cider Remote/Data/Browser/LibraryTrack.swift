@@ -7,7 +7,8 @@ struct LibraryTrack: Identifiable, Hashable {
 
     let name: String
     let artist: String
-    let album: LibraryAlbum
+    let album: LibraryAlbum?
+    let artwork: String
 
     let discNumber: Int
     let trackNumber: Int
@@ -22,7 +23,8 @@ struct LibraryTrack: Identifiable, Hashable {
         id: String,
         name: String,
         artist: String,
-        album: LibraryAlbum,
+        artwork: String,
+        album: LibraryAlbum? = nil,
         discNumber: Int = 1,
         trackNumber: Int,
         catalogId: String
@@ -30,14 +32,16 @@ struct LibraryTrack: Identifiable, Hashable {
         self.id = id
         self.name = name
         self.artist = artist
+        self.artwork = artwork
         self.album = album
         self.discNumber = discNumber
         self.trackNumber = trackNumber
         self.catalogId = catalogId
     }
 
-    init(data: [String: Any], from album: LibraryAlbum) {
+    init(data: [String: Any], from album: LibraryAlbum? = nil) {
         let attributes: [String: Any] = data["attributes"] as! [String: Any]
+        let artwork: [String: Any] = attributes["artwork"] as! [String: Any]
         let playParams: [String: Any]? = attributes["playParams"] as? [String: Any]
         self.album = album
 
@@ -52,6 +56,12 @@ struct LibraryTrack: Identifiable, Hashable {
             self.catalogId = playParams["catalogId"] as! String
         } else {
             self.catalogId = "[UNKNOWN]"
+        }
+
+        if let w = artwork["width"] as? Int {
+            self.artwork = (artwork["url"] as! String).replacing(/\{(w|h)\}/, with: "\(w)")
+        } else {
+            self.artwork = (artwork["url"] as! String).replacing(/\{(w|h)\}/, with: "\(700)")
         }
     }
 }

@@ -276,6 +276,23 @@ struct MusicPlayerView: View {
                 }
             }
         }
+        .onAppear {
+#if !WIDGET
+            self.alwaysOn(UserDefaults.standard.bool(forKey: "alwaysOn"))
+#endif
+        }
+        .onDisappear {
+#if !WIDGET
+            self.alwaysOn(false)
+#endif
+        }
+    }
+
+    private func alwaysOn(_ bool: Bool) {
+#if !WIDGET
+        UIApplication.shared.isIdleTimerDisabled = bool
+        print("always-\(bool ? "on" : "off")")
+#endif
     }
 
     private var closeBtn: some View {

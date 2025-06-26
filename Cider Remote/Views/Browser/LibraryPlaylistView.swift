@@ -2,53 +2,32 @@
 
 import SwiftUI
 
-struct LibraryAlbumView: View {
+struct LibraryPlaylistView: View {
     @EnvironmentObject private var device: Device
 
-    @State var album: LibraryAlbum
+    @State var playlist: LibraryPlaylist
 
     @State private var isLoading: Bool = true
-    @State private var multiDisc: Bool = false
     @State private var sharingTrack: LibraryTrack? = nil
-    @State private var releaseDate: Date? = nil
     @State private var sharingImage: UIImage? = nil
 
-    init(_ album: LibraryAlbum) {
-        self.album = album
+    init(_ playlist: LibraryPlaylist) {
+        self.playlist = playlist
     }
 
     var body: some View {
         ScrollView(.vertical) {
             header
 
-            if isLoading || self.album.tracks == nil {
+            if isLoading || self.playlist.tracks == nil {
                 ProgressView()
                     .progressViewStyle(.circular)
                     .padding(.top, 100)
             } else {
                 LazyVStack {
-                    releaseEvent
-                        .padding(.vertical, 12.0)
-
-                    ForEach(self.album.tracks!) { track in
+                    ForEach(self.playlist.tracks!) { track in
+                        let idx: Int = (self.playlist.tracks!.firstIndex(of: track) ?? -1) + 1
                         Divider()
-
-                        if track.trackNumber == 1 && self.multiDisc {
-                            HStack {
-                                Image(.compactDisc)
-                                    .resizable()
-                                    .frame(width: 20, height: 20)
-                                    .padding(.trailing)
-
-                                Text("Disc \(track.discNumber)")
-                                    .font(.title2.bold())
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-
-                            Divider()
-                        }
 
                         HStack {
                             Button {
@@ -64,7 +43,7 @@ struct LibraryAlbumView: View {
                                     //                                    }
                                 }
                             } label: {
-                                LibraryTrackRow(track, number: track.trackNumber, showCover: false)
+                                LibraryTrackRow(track, number: idx, showCover: true)
                                     .padding(.vertical, UserDevice.shared.isBeta ? 15.0 : 5.0)
                             }
                             .disabled(track.catalogId == "[UNKNOWN]")
@@ -94,15 +73,11 @@ struct LibraryAlbumView: View {
                 .padding(.top)
             }
         }
-        .navigationTitle(Text(album.title))
+        .navigationTitle(Text(self.playlist.name))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             defer { self.isLoading = false }
-            self.album.tracks = await self.getTracks(from: self.album)
-
-            if let last = self.album.tracks?.map({ $0.discNumber }).last {
-                self.multiDisc = last > 1
-            }
+            self.playlist.tracks = await self.getTracks(from: self.playlist)
         }
         .sheet(item: $sharingTrack) { t in
             ActivityViewController(item: .track(track: .init(from: t)))
@@ -112,7 +87,7 @@ struct LibraryAlbumView: View {
 
     var header: some View {
         LazyVStack {
-            AsyncImage(url: URL(string: album.artwork)) { image in
+            AsyncImage(url: URL(string: self.playlist.artwork)) { image in
                 image
                     .resizable()
                     .frame(width: 220, height: 220)
@@ -133,7 +108,7 @@ struct LibraryAlbumView: View {
             .contextMenu {
                 Button {
                     Task {
-                        guard let url = URL(string: album.artwork),
+                        guard let url = URL(string: self.playlist.artwork),
                               let (data, _) = try? await URLSession.shared.data(from: url),
                               let image = UIImage(data: data) else {
                             return
@@ -152,46 +127,16 @@ struct LibraryAlbumView: View {
                     .presentationDetents([.medium, .large])
             }
 
-            Text(self.album.title)
+            Text(self.playlist.name)
                 .font(.body.bold())
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-
-            Text(self.album.artist)
-                .font(.body)
-                .lineLimit(1)
-                .foregroundStyle(Color.secondary)
         }
         .padding(.horizontal, 5.0)
     }
-
-    @ViewBuilder
-    var releaseEvent: some View {
-        if let releaseDate {
-            VStack {
-                Text("Releases in...")
-                    .foregroundStyle(Color.white)
-                    .font(.callout)
-                    .lineLimit(1)
-
-                Text(releaseDate, style: .relative)
-                    .foregroundStyle(Color.white)
-                    .font(.title2.bold())
-            }
-            .padding()
-            .background(Color.cider)
-            .clipShape(RoundedRectangle(cornerRadius: 10.0))
-        }
-    }
 }
 
-extension UIImage: @retroactive Identifiable {
-    public var id: UUID {
-        UUID()
-    }
-}
-
-extension LibraryAlbumView {
+extension LibraryPlaylistView {
     func playHref(href: String) async {
         do {
             _ = try await device.sendRequest(endpoint: "playback/play-item-href", method: "POST", body: ["href": href])
@@ -217,7 +162,7 @@ extension LibraryAlbumView {
     }
 
     func playNext(from playingTrack: LibraryTrack)  {
-        guard let tracks = self.album.tracks, let index: Int = tracks.firstIndex(of: playingTrack) else { return }
+        guard let tracks = self.playlist.tracks, let index: Int = tracks.firstIndex(of: playingTrack) else { return }
 
         for track in tracks[index...tracks.count - 1] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -232,20 +177,14 @@ extension LibraryAlbumView {
         }
     }
 
-    func getTracks(from album: LibraryAlbum) async -> [LibraryTrack] {
+    func getTracks(from playlist: LibraryPlaylist) async -> [LibraryTrack] {
         do {
-            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/albums/\(album.id)/tracks")
+            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/playlists/\(playlist.id)/tracks")
             var libraries: [LibraryTrack] = []
 
             if let arrayd = data as? [[String: Any]] {
                 for l in arrayd {
-                    libraries.append(.init(data: l, from: album))
-                }
-            }
-
-            if libraries.contains(where: { $0.catalogId == "[UNKNOWN]" }) {
-                if let available: LibraryTrack = libraries.first(where: { $0.catalogId != "[UNKNOWN]"}) {
-                    await self.getAlbum(using: available)
+                    libraries.append(.init(data: l))
                 }
             }
 
@@ -255,21 +194,5 @@ extension LibraryAlbumView {
         }
 
         return []
-    }
-
-    func getAlbum(using track: LibraryTrack) async {
-        do {
-            guard let data = try await device.runAppleMusicAPI(path: "/v1/catalog/us/songs/\(track.catalogId)/albums") as? [[String: Any]] else { return }
-            if let attributes: [String: Any] = data[0]["attributes"] as? [String: Any], attributes["isPrerelease"] as? Int == 1 {
-                let dateFormat: DateFormatter = .init()
-                dateFormat.dateFormat = "YYYY-MM-dd"
-
-                if let dateString = attributes["releaseDate"] as? String {
-                    self.releaseDate = dateFormat.date(from: dateString)
-                }
-            }
-        } catch {
-            print("Error getting album details: \(error)")
-        }
     }
 }

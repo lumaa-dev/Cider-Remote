@@ -27,7 +27,7 @@ struct LibraryAlbum: Identifiable, Hashable {
         if let w = artwork["width"] as? Int {
             self.artwork = (artwork["url"] as! String).replacing(/\{(w|h)\}/, with: "\(w)")
         } else {
-            self.artwork = artwork["url"] as! String
+            self.artwork = (artwork["url"] as! String).replacing(/\{(w|h)\}/, with: "\(700)")
         }
     }
 }

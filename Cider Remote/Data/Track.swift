@@ -42,8 +42,8 @@ struct Track: Codable, Equatable {
         self.catalogId = library.catalogId
         self.title = library.name
         self.artist = library.artist
-        self.album = library.album.title
-        self.artwork = library.album.artwork
+        self.album = library.album?.title ?? library.name
+        self.artwork = library.album?.artwork ?? library.artwork
         self.duration = 0.0
         self.artworkData = Data()
         self.songHref = library.href
