@@ -6,9 +6,10 @@ import AVFoundation
 struct AddDeviceView: View {
     @Binding var isShowingScanner: Bool
     @Binding var scannedCode: String?
-    @ObservedObject var viewModel: DeviceListViewModel
 
     @State private var jsonTxt: String = ""
+
+    var fetchAction: (String) -> Void
 
     var body: some View {
         Button {
@@ -27,7 +28,7 @@ struct AddDeviceView: View {
                         }
                     }
                 } else {
-                    viewModel.showingCameraPrompt = true
+                    AppPrompt.shared.showingPrompt = .accesCamera
                 }
             }
         } label: {
@@ -42,7 +43,7 @@ struct AddDeviceView: View {
                     .textFieldStyle(.roundedBorder)
 
                 Button {
-                    viewModel.fetchDevices(from: jsonTxt)
+                    fetchAction(jsonTxt)
                     isShowingScanner = false
                 } label: {
                     Text(String("Fetch device"))
@@ -70,7 +71,7 @@ struct AddDeviceView: View {
         }
         .onChange(of: scannedCode) { _, newValue in
             if let code = newValue {
-                viewModel.fetchDevices(from: code)
+                fetchAction(jsonTxt)
                 isShowingScanner = false
             }
         }

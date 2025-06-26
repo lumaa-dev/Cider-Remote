@@ -7,7 +7,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss: DismissAction
 
     @EnvironmentObject var colorScheme: ColorSchemeManager
-    @EnvironmentObject var deviceListViewModel: DeviceListViewModel
 
     // appearence
     @AppStorage("useAdaptiveColors") private var useAdaptiveColors: Bool = true
@@ -151,14 +150,6 @@ struct SettingsView: View {
             .background(Color.blue)
             .foregroundStyle(Color.white)
             .clipShape(Capsule())
-    }
-}
-
-struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        SettingsView()
-            .environmentObject(ColorSchemeManager())
-            .environmentObject(DeviceListViewModel())
     }
 }
 

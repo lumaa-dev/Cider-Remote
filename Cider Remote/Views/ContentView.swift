@@ -9,9 +9,9 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var colorScheme = ColorSchemeManager()
-    @StateObject private var deviceListViewModel = DeviceListViewModel()
 
     @State private var showingSettings = false
+    @StateObject private var prompt: AppPrompt = .shared
 
     var body: some View {
         ZStack {
@@ -29,52 +29,43 @@ struct ContentView: View {
             }
             .tint(Color.cider)
 
-            if #available(iOS 26.0, *) {} else {
-                if deviceListViewModel.showingNamePrompt {
+            if #unavailable(iOS 26.0) {
+                if AppPrompt.shared.showingPrompt == .newDevice {
                     FriendlyNamePromptView()
-                        .environmentObject(deviceListViewModel)
                 }
 
-                if deviceListViewModel.showingOldDeviceAlert {
+                if AppPrompt.shared.showingPrompt == .oldDevice {
                     OldDeviceAlertView()
-                        .environmentObject(deviceListViewModel)
                 }
 
-                if deviceListViewModel.showingCameraPrompt {
+                if AppPrompt.shared.showingPrompt == .accesCamera {
                     CameraPromptView()
-                        .environmentObject(deviceListViewModel)
                 }
             }
         }
         .environmentObject(colorScheme)
-        .environmentObject(deviceListViewModel)
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
-        .conditionalSheet(isPresented: $deviceListViewModel.showingOldDeviceAlert, condition: UserDevice.shared.isBeta) {
-            OldDeviceAlertView()
-                .environmentObject(deviceListViewModel)
-                .environmentObject(colorScheme)
-                .presentationDetents([.medium])
-        }
-        .conditionalSheet(isPresented: $deviceListViewModel.showingNamePrompt, condition: UserDevice.shared.isBeta) {
-            FriendlyNamePromptView()
-                .environmentObject(deviceListViewModel)
-                .environmentObject(colorScheme)
-                .presentationDetents([.medium])
-        }
-        .conditionalSheet(isPresented: $deviceListViewModel.showingCameraPrompt, condition: UserDevice.shared.isBeta) {
-            CameraPromptView()
-                .environmentObject(deviceListViewModel)
-                .environmentObject(colorScheme)
-                .presentationDetents([.medium])
+        .sheet(item: $prompt.showingPrompt) { prompt in
+            ZStack {
+                switch prompt {
+                    case .accesCamera:
+                        CameraPromptView()
+                            .presentationDetents([.medium])
+                    case .newDevice:
+                        FriendlyNamePromptView()
+                            .presentationDetents([.medium])
+                    case .oldDevice:
+                        OldDeviceAlertView()
+                            .presentationDetents([.medium])
+                }
+            }
         }
     }
 }
 
 struct OldDeviceAlertView: View {
-    @EnvironmentObject var viewModel: DeviceListViewModel
-
     var prompt: Prompt {
         var p: Prompt = Prompt(
             symbol: "exclamationmark.triangle",
@@ -87,7 +78,9 @@ struct OldDeviceAlertView: View {
     }
 
     var body: some View {
-        FullPrompt(isShowing: $viewModel.showingOldDeviceAlert, prompt: prompt)
+        FullPrompt(prompt) {
+            AppPrompt.shared.showingPrompt = nil
+        }
     }
 
     var txt: some View {
@@ -101,19 +94,19 @@ struct OldDeviceAlertView: View {
 struct FriendlyNamePromptView: View {
     @Environment(\.colorScheme) private var systemColorScheme
 
-    @EnvironmentObject private var viewModel: DeviceListViewModel
-
     @State private var friendlyName: String = ""
 
     var prompt: Prompt {
         return .init(symbol: "desktopcomputer", title: "New Device Found", view: AnyView(self.fields), actionLabel: "OK", action: {
-            viewModel.addNewDevice(withName: friendlyName)
-            viewModel.showingNamePrompt = false
+            self.addNewDevice(withName: friendlyName)
+            AppPrompt.shared.showingPrompt = nil
         })
     }
 
     var body: some View {
-        FullPrompt(isShowing: $viewModel.showingNamePrompt.animation(.spring), prompt: prompt)
+        FullPrompt(prompt) {
+            AppPrompt.shared.showingPrompt = nil
+        }
     }
 
     @ViewBuilder
@@ -132,11 +125,47 @@ struct FriendlyNamePromptView: View {
                 .autocapitalization(.words)
         }
     }
+
+    private func addNewDevice(withName friendlyName: String) {
+        guard let connectionInfo = DeviceManager.shared.connectionInfo else {
+            print("No new device info available")
+            return
+        }
+
+        let newDevice = Device(
+            id: UUID(),
+            host: connectionInfo.address,
+            token: connectionInfo.token,
+            friendlyName: friendlyName,
+            creationTime: Int(Date().timeIntervalSince1970),
+            version: connectionInfo.initialData.version,
+            platform: connectionInfo.initialData.platform,
+            backend: connectionInfo.initialData.platform, // Using platform as backend for now
+            connectionMethod: connectionInfo.method.rawValue,
+            isActive: false,
+            os: connectionInfo.initialData.os
+        )
+
+        DispatchQueue.main.async {
+            if let existingIndex = DeviceManager.shared.devices.firstIndex(where: { $0.host == newDevice.host }) {
+                // Update existing device
+                DeviceManager.shared.set(newDevice, at: existingIndex)
+            } else {
+                // Add new device
+                DeviceManager.shared.add(newDevice)
+            }
+
+            Task { await DeviceManager.shared.checkDeviceActivity(newDevice) }
+        }
+
+        // Reset the new device info and close the prompt
+        DeviceManager.shared.connectionInfo = nil
+        AppPrompt.shared.showingPrompt = nil
+    }
 }
 
 struct CameraPromptView: View {
     @Environment(\.openURL) private var openURL: OpenURLAction
-    @EnvironmentObject var viewModel: DeviceListViewModel
 
     var prompt: Prompt {
         return .init(symbol: "camera", title: "Enable Camera", view: AnyView(self.text), actionLabel: "Open Settings", action: {
@@ -147,7 +176,9 @@ struct CameraPromptView: View {
     }
 
     var body: some View {
-        FullPrompt(isShowing: $viewModel.showingCameraPrompt, prompt: prompt)
+        FullPrompt(prompt) {
+            AppPrompt.shared.showingPrompt = nil
+        }
     }
 
     @ViewBuilder

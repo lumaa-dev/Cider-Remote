@@ -12,4 +12,14 @@ extension View {
             self
         }
     }
+
+    @ViewBuilder
+    func conditionalSheet<Item: Identifiable>(item: Binding<Item?>, condition: Bool = true, content: @escaping (Item) -> some View) -> some View {
+        if condition {
+            self
+                .sheet(item: item, content: content)
+        } else {
+            self
+        }
+    }
 }
