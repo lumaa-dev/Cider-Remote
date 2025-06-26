@@ -6,7 +6,7 @@ class DeviceManager: ObservableObject {
     static let shared: DeviceManager = .init()
 
     @Published private(set) public var devices: [Device] = []
-    public var connectionInfo: ConnectionInfo?
+    @Published public var connectionInfo: ConnectionInfo?
 
     init(devices: [Device]) {
         self.devices = devices
@@ -72,6 +72,7 @@ class DeviceManager: ObservableObject {
             return decodedDevices
         } catch {
             print("Error decoding saved devices: \(error)")
+            UserDefaults.standard.set(nil, forKey: "savedDevices") // remove to avoid corruption
             return []
         }
     }

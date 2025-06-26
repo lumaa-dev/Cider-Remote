@@ -99,7 +99,6 @@ struct FriendlyNamePromptView: View {
     var prompt: Prompt {
         return .init(symbol: "desktopcomputer", title: "New Device Found", view: AnyView(self.fields), actionLabel: "OK", action: {
             self.addNewDevice(withName: friendlyName)
-            AppPrompt.shared.showingPrompt = nil
         })
     }
 
@@ -127,10 +126,7 @@ struct FriendlyNamePromptView: View {
     }
 
     private func addNewDevice(withName friendlyName: String) {
-        guard let connectionInfo = DeviceManager.shared.connectionInfo else {
-            print("No new device info available")
-            return
-        }
+        guard let connectionInfo = DeviceManager.shared.connectionInfo else { return }
 
         let newDevice = Device(
             id: UUID(),
@@ -146,17 +142,15 @@ struct FriendlyNamePromptView: View {
             os: connectionInfo.initialData.os
         )
 
-        DispatchQueue.main.async {
-            if let existingIndex = DeviceManager.shared.devices.firstIndex(where: { $0.host == newDevice.host }) {
-                // Update existing device
-                DeviceManager.shared.set(newDevice, at: existingIndex)
-            } else {
-                // Add new device
-                DeviceManager.shared.add(newDevice)
-            }
-
-            Task { await DeviceManager.shared.checkDeviceActivity(newDevice) }
+        if let existingIndex = DeviceManager.shared.devices.firstIndex(where: { $0.host == newDevice.host }) {
+            // Update existing device
+            DeviceManager.shared.set(newDevice, at: existingIndex)
+        } else {
+            // Add new device
+            DeviceManager.shared.add(newDevice)
         }
+
+        Task { await DeviceManager.shared.checkDeviceActivity(newDevice) }
 
         // Reset the new device info and close the prompt
         DeviceManager.shared.connectionInfo = nil

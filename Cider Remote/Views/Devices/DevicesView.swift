@@ -162,49 +162,12 @@ struct DevicesView: View {
 
         do {
             let connectionInfo = try JSONDecoder().decode(ConnectionInfo.self, from: jsonData)
-            deviceManager.connectionInfo = connectionInfo
+            DeviceManager.shared.connectionInfo = connectionInfo
             AppPrompt.shared.showingPrompt = .newDevice
         } catch {
             print("Error decoding ConnectionInfo: \(error)")
             AppPrompt.shared.showingPrompt = .oldDevice
         }
-    }
-
-    func addNewDevice(withName friendlyName: String) {
-        guard let connectionInfo = deviceManager.connectionInfo else {
-            print("No new device info available")
-            return
-        }
-
-        let newDevice = Device(
-            id: UUID(),
-            host: connectionInfo.address,
-            token: connectionInfo.token,
-            friendlyName: friendlyName,
-            creationTime: Int(Date().timeIntervalSince1970),
-            version: connectionInfo.initialData.version,
-            platform: connectionInfo.initialData.platform,
-            backend: connectionInfo.initialData.platform, // Using platform as backend for now
-            connectionMethod: connectionInfo.method.rawValue,
-            isActive: false,
-            os: connectionInfo.initialData.os
-        )
-
-        DispatchQueue.main.async {
-            if let existingIndex = deviceManager.devices.firstIndex(where: { $0.host == newDevice.host }) {
-                // Update existing device
-                deviceManager.set(newDevice, at: existingIndex)
-            } else {
-                // Add new device
-                deviceManager.add(newDevice)
-            }
-
-            Task { await deviceManager.checkDeviceActivity(newDevice) }
-        }
-
-        // Reset the new device info and close the prompt
-        deviceManager.connectionInfo = nil
-        AppPrompt.shared.showingPrompt = .newDevice
     }
 
     private func finishRefreshing() {

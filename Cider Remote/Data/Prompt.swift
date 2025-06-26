@@ -46,6 +46,7 @@ struct Prompt {
 
                 VStack(spacing: 16) {
                     Button {
+                        self.action()
                         dismiss()
                     } label: {
                         Text(self.actionLabel)
