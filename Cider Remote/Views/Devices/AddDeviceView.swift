@@ -80,7 +80,7 @@ struct AddDeviceView: View {
         }
         .onChange(of: scannedCode) { _, newValue in
             if let code = newValue {
-                fetchAction(jsonTxt)
+                fetchAction(code)
                 isShowingScanner = false
             }
         }
