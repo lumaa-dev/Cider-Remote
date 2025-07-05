@@ -306,6 +306,7 @@ extension Changelog {
                 "The \"View Library\" button is now pinned at the top of the queue on iOS 26",
                 "All prompts are now sheets on iOS 26",
                 "Lyric provider is now Liquid Glass on iOS 26",
+                "Changed the Finder icon for macOS 26's icon",
                 "Share album covers from the Library Browser",
                 "Major improvements in Cider devices handling",
                 "Fix: Immersive Lyrics don't instantly jump from one lyric to another",
