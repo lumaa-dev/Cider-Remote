@@ -297,6 +297,7 @@ extension Changelog {
             .setChanges(additions: [
                 "iOS 26 support",
                 "Liquid Glass design",
+                "A brand new Liquid Glass app icon",
                 "Access your playlist in the Library Browser",
                 "New setting \"Always-on Immersive\" to keep the device on when using the Horizontal Layout",
                 "A \"Close\" button in the queue in Horizontal Layout"
