@@ -54,13 +54,22 @@ struct AddDeviceView: View {
             if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
                 QRScannerView(scannedCode: $scannedCode)
                     .overlay(alignment: .top) {
-                        Text("Scan the Cider QR code")
-                            .font(.caption)
-                            .padding(.horizontal)
-                            .padding(.vertical, 7.5)
-                            .background(Material.thin)
-                            .clipShape(.rect(cornerRadius: 15.5))
-                            .padding(.top, 22.5)
+                        if #available(iOS 26.0, *) {
+                            Text("Scan the Remote QR code")
+                                .font(.caption)
+                                .padding(.horizontal)
+                                .padding(.vertical, 7.5)
+                                .glassEffect()
+                                .padding(.top, 22.5)
+                        } else {
+                            Text("Scan the Remote QR code")
+                                .font(.caption)
+                                .padding(.horizontal)
+                                .padding(.vertical, 7.5)
+                                .background(Material.thin)
+                                .clipShape(.rect(cornerRadius: 15.5))
+                                .padding(.top, 22.5)
+                        }
                     }
             } else {
                 Text("Cider Remote cannot access the camera")
