@@ -160,13 +160,17 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         let padding: CGFloat = 16
 
         // Create a backdrop view
-        let backdropView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
+        var backdropView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
+        if #available(iOS 26.0, *) {
+            backdropView = UIVisualEffectView(effect: UIGlassEffect())
+        }
+
         backdropView.layer.cornerRadius = closeButtonSize / 2
         backdropView.clipsToBounds = true
         view.addSubview(backdropView)
 
         // Create the close button
-        let closeButton = UIButton(type: .system)
+        let closeButton = UIButton(type: .custom)
         closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
         closeButton.tintColor = .white
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
