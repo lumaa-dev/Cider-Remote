@@ -40,7 +40,7 @@ struct Queue {
     }
 
     mutating func move(from: IndexSet, to: Int) {
-        guard let first = from.first, let last = from.last, to >= 0 else { return }
+        guard let first = from.first, let last = from.last else { return }
 
         print("first: \(first + offset)")
         print("last: \(last + offset)")
