@@ -54,7 +54,7 @@ struct QueueView: View {
 
     @ViewBuilder
     private var queueView: some View {
-        if viewModel.queueItems.count <= 1 { // 1 = single
+        if viewModel.queueItems.count < 1 || (viewModel.queueItems.count == 1 && viewModel.queueItems.first == viewModel.currentTrack) {
             if #available(iOS 17.0, *) {
                 ContentUnavailableView("Queue empty", systemImage: "list.number", description: Text("Your Cider queue is empty"))
             } else {
@@ -166,3 +166,4 @@ struct QueueView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
 }
+
