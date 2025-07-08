@@ -59,6 +59,20 @@ struct LibraryPlaylistView: View {
                                 } label: {
                                     Label("Share", systemImage: "square.and.arrow.up")
                                 }
+
+                                Divider()
+
+                                Button {
+                                    self.playNext(from: track)
+                                } label: {
+                                    Label("Play Next", image: "PlayNext")
+                                }
+
+                                Button {
+                                    self.playLater(from: track)
+                                } label: {
+                                    Label("Play Later", image: "PlayLater")
+                                }
                             } label: {
                                 Image(systemName: "ellipsis")
                             }
@@ -161,18 +175,22 @@ extension LibraryPlaylistView {
         }
     }
 
-    func playNext(from playingTrack: LibraryTrack)  {
-        guard let tracks = self.playlist.tracks, let index: Int = tracks.firstIndex(of: playingTrack) else { return }
+    func playLater(from playingTrack: LibraryTrack)  {
+        Task {
+            do {
+                let _ = try await device.sendRequest(endpoint: "playback/play-later", method: "POST", body: ["id": playingTrack.id, "type": "song"])
+            } catch {
+                print("Error playing next: \(error)")
+            }
+        }
+    }
 
-        for track in tracks[index...tracks.count - 1] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                Task {
-                    do {
-                        let _ = try await device.sendRequest(endpoint: "playback/play-later", method: "POST", body: ["id": track.id, "type": "song"])
-                    } catch {
-                        print("Error playing next: \(error)")
-                    }
-                }
+    func playNext(from playingTrack: LibraryTrack)  {
+        Task {
+            do {
+                let _ = try await device.sendRequest(endpoint: "playback/play-next", method: "POST", body: ["id": playingTrack.id, "type": "song"])
+            } catch {
+                print("Error playing next: \(error)")
             }
         }
     }

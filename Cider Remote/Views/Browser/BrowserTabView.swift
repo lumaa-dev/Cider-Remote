@@ -97,18 +97,18 @@ struct BrowserTabView: View {
 }
 
 extension BrowserTabView {
-    func getLibrary(offset: Int = 0) async -> [LibraryElement] {
+    func getLibrary(limit: Int = 10, offset: Int = 0) async -> [LibraryElement] {
         switch self.tab {
             case .albums:
-                return await self.getAlbums(offset: offset).map { LibraryElement.album($0) }
+                return await self.getAlbums(limit: limit, offset: offset).map { LibraryElement.album($0) }
             case .playlists:
-                return await self.getPlaylists(offset: offset).map { LibraryElement.playlist($0) }
+                return await self.getPlaylists(limit: limit, offset: offset).map { LibraryElement.playlist($0) }
         }
     }
 
-    func getAlbums(offset: Int = 0) async -> [LibraryAlbum] {
+    func getAlbums(limit: Int = 10, offset: Int = 0) async -> [LibraryAlbum] {
         do {
-            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/albums?offset=\(offset)")
+            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/albums?limit=\(limit)&offset=\(offset)")
             var libraries: [LibraryAlbum] = []
 
             if let arrayd = data as? [[String: Any]] {
@@ -128,9 +128,9 @@ extension BrowserTabView {
         return []
     }
 
-    func getPlaylists(offset: Int = 0) async -> [LibraryPlaylist] {
+    func getPlaylists(limit: Int = 10, offset: Int = 0) async -> [LibraryPlaylist] {
         do {
-            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/playlists?offset=\(offset)")
+            let data = try await device.runAppleMusicAPI(path: "/v1/me/library/playlists?limit=\(limit)&offset=\(offset)")
             var libraries: [LibraryPlaylist] = []
 
             if let arrayd = data as? [[String: Any]] {
