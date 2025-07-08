@@ -21,6 +21,10 @@ struct MusicPlayerView: View {
     @StateObject private var userDevice: UserDevice = .shared
 
     @State private var currentImage: UIImage?
+
+    @State private var hasPlayed = false
+    @State private var librarySheet = false
+
     @State private var isLoading = true
     @State private var isCompact = false
 
@@ -65,9 +69,36 @@ struct MusicPlayerView: View {
                                 )
                             }
                         } else {
-                            Text("No track playing")
-                                .font(.title)
-                                .foregroundStyle(.secondary)
+                            VStack {
+                                Text("No Song Playing")
+                                    .font(.title)
+                                    .foregroundStyle(.secondary)
+
+                                if hasPlayed {
+                                    if #available(iOS 26.0, *) {
+                                        Button {
+                                            self.librarySheet.toggle()
+                                        } label: {
+                                            Text("View Library")
+                                        }
+                                        .buttonStyle(.glassProminent)
+                                    } else {
+                                        Button {
+                                            self.librarySheet.toggle()
+                                        } label: {
+                                            Text("View Library")
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                    }
+                                } else {
+                                    Text("Start by playing something in Cider!")
+                                        .font(.callout)
+                                        .foregroundStyle(Color.secondary)
+                                }
+                            }
+                            .fullScreenCover(isPresented: $librarySheet) {
+                                BrowserView(device: viewModel.device)
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
