@@ -299,6 +299,8 @@ extension Changelog {
                 "Liquid Glass design",
                 "A brand new Liquid Glass app icon on iOS 26",
                 "Access your playlist in the Library Browser",
+                "\"Play Next\" and \"Play Later\" in the Library Browser",
+                "Library Browser button after a queue finishes (thanks Ambre!)",
                 "New setting \"Always-on Immersive\" to keep the device on when using the Horizontal Layout",
                 "A \"Close\" button in the queue in Horizontal Layout"
             ], modifications: [
@@ -306,9 +308,11 @@ extension Changelog {
                 "The \"View Library\" button is now pinned at the top of the queue on iOS 26",
                 "All prompts are now sheets on iOS 26",
                 "Lyric provider is now Liquid Glass on iOS 26",
-                "Changed the Finder icon for macOS 26's icon",
+                "Changed the Finder icon for macOS 26's icon in the Cider Devices list",
                 "Share album covers from the Library Browser",
                 "Major improvements in Cider devices handling",
+                "Fix: Moving tracks in a one-track-long queue will no longer crash",
+                "Fix: Queue will appear empty if a single track is played",
                 "Fix: Immersive Lyrics don't instantly jump from one lyric to another",
                 "Fix: Cider icon would clip through the Live Activity on macOS Tahoe 26"
             ], removals: [
