@@ -208,15 +208,15 @@ class MusicPlayerViewModel: ObservableObject {
     }
 
     func fetchAllLyrics() async {
-        await self.fetchLyricsAm() // apple music
-        if self.lyrics == nil || self.lyrics?.count ?? -1 <= 0 {
-            // unsuccessful
-            await self.fetchLyricsMxm() // musixmatch
+        let success: Bool = await self.fetchLyricsAm() // apple music
+        if !success {
+            _ = await self.fetchLyricsMxm() // musixmatch
         }
     }
 
-    func fetchLyricsMxm() async {
-        guard let currentTrack else { return }
+    /// Returns true if the lyrics were found and fetched
+    func fetchLyricsMxm() async -> Bool {
+        guard let currentTrack else { return false }
 
         print("Current track ID: \(currentTrack.id)")
 
@@ -224,11 +224,11 @@ class MusicPlayerViewModel: ObservableObject {
             print("Using cached lyrics for track: \(currentTrack.id)")
             self.lyricsProvider = .cache
             self.lyrics = cachedLyrics
-            return
+            return true
         }
 
         self.lyrics = nil
-        guard let lyricsUrl = URL(string: "https://rise.cider.sh/api/v1/lyrics/mxm") else { return }
+        guard let lyricsUrl = URL(string: "https://rise.cider.sh/api/v1/lyrics/mxm") else { return false }
 
         do {
             print("Fetching lyrics ONLINE for track: \(currentTrack.id)")
@@ -252,10 +252,13 @@ class MusicPlayerViewModel: ObservableObject {
 
                 let lines = mxm.decodeHtml()
                 print("Parsed \(lines.count) lyric lines")
-                DispatchQueue.main.async {
-                    self.lyricsProvider = .mxm
-                    self.lyrics = lines
-                    self.lyricCache[currentTrack.id] = self.lyrics
+                if lines.count > 0 {
+                    DispatchQueue.main.async {
+                        self.lyricsProvider = .mxm
+                        self.lyrics = lines
+                        self.lyricCache[currentTrack.id] = self.lyrics
+                    }
+                    return true
                 }
             } else {
                 self.lyrics = []
@@ -266,13 +269,12 @@ class MusicPlayerViewModel: ObservableObject {
             print(error)
             handleError(error)
         }
+        return false
     }
 
-    func fetchLyricsAm() async {
-        guard let currentTrack = currentTrack else {
-            print("No current track available")
-            return
-        }
+    /// Returns true if the lyrics were found and fetched
+    func fetchLyricsAm() async -> Bool {
+        guard let currentTrack else { return false }
 
         print("Current track ID: \(currentTrack.id)")
 
@@ -280,11 +282,11 @@ class MusicPlayerViewModel: ObservableObject {
             print("Using cached lyrics for track: \(currentTrack.id)")
             self.lyricsProvider = .cache
             self.lyrics = cachedLyrics
-            return
+            return true
         }
 
         do {
-            guard let storefront = await self.getStorefront() else { return }
+            guard let storefront = await self.getStorefront() else { return false }
 
             print("Fetching lyrics FROM CLIENT for track: \(currentTrack.id)")
             let path: String = "/v1/catalog/\(storefront)/songs/\(currentTrack.catalogId)/lyrics?l=en-US&platform=web&art[url]=f"
@@ -305,6 +307,7 @@ class MusicPlayerViewModel: ObservableObject {
                 self.lyricsProvider = .am
                 self.lyrics = ttmlParser.lyrics
                 self.lyricCache[currentTrack.id] = self.lyrics
+                return true
             } else {
                 throw NetworkError.invalidResponse
             }
@@ -312,6 +315,7 @@ class MusicPlayerViewModel: ObservableObject {
             print("Error fetching lyrics: \(error)")
             handleError(error)
         }
+        return false
     }
 
     func getStorefront() async -> String? {

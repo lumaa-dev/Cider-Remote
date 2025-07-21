@@ -313,6 +313,7 @@ extension Changelog {
                 "Major improvements in Cider devices handling",
                 "Fix: Moving tracks in a one-track-long queue will no longer crash",
                 "Fix: Queue will appear empty if a single track is played",
+                "Fix: Remote now tries Apple Music's lyrics then Musixmatch's lyrics correctly",
                 "Fix: Immersive Lyrics don't instantly jump from one lyric to another",
                 "Fix: Cider icon would clip through the Live Activity on macOS Tahoe 26"
             ], removals: [
