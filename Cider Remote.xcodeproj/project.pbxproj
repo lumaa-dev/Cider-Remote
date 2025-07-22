@@ -160,10 +160,10 @@
 				B9D289292CC51497008543A7 /* Cider Remote.entitlements */,
 				B9D2892A2CC51497008543A7 /* Cider_RemoteApp.swift */,
 				B9CDA87C2CC69A7300FBF580 /* AppDelegate.swift */,
-				B913FE672E171089005A4680 /* AppIcon.icon */,
 				B9E7DA182D0125F500840996 /* Components */,
 				B9E7DA0A2D0125F100840996 /* Views */,
 				B9E7DA2F2D01260000840996 /* Data */,
+				B913FE672E171089005A4680 /* AppIcon.icon */,
 				B9D289282CC51497008543A7 /* Assets.xcassets */,
 			);
 			path = "Cider Remote";
