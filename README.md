@@ -10,15 +10,15 @@
 # About Remote
 [Cider Remote](https://cider.sh/remote) is a native iOS app, built with [SwiftUI](https://developer.apple.com/swiftui/) and [Socket.io](https://socket.io/), that gives remote controls to [Cider](https://cider.sh/).
 
-[Cider Remote](https://cider.sh/remote) is the official [Cider](https://cider.sh/) remote control app on iPhone and iPad, with these features:
+[Cider Remote](https://cider.sh/remote) is the official [Cider](https://cider.sh/) remote control app on iPhone and iPad using iOS 17 or later, with these features:
 
 - Seamless communications between [Remote](https://cider.sh/remote) and [Cider](https://cider.sh/)
-- Live Activity displaying your ongoing track + play/pause actions
+- Live Activity with the playing track and quick actions ([ActivityKit](https://developer.apple.com/documentation/ActivityKit))
 - Horizontal Layout (Landscape)
 - Queue Management
 - Apple Music & MusixMatch Lyrics (+ Immersive Lyrics in Horizontal Layout)
 - Siri Shortcuts actions ([App Intents](https://developer.apple.com/documentation/appintents))
-- Control Center actions (iOS 18+)
+- Control Center actions ([WidgetKit](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system#Add-a-control-toggle-to-your-app), iOS 18+)
 - Liquid Glass design* (iOS 26+)
 
 *\* Coming later this fall, with iOS 26 and iPadOS 26, available in Beta*
@@ -27,10 +27,10 @@
 
 To make a feedback about Cider Remote, you can do the following:
 - You can [write a review](https://apps.apple.com/app/id6670149407?action=write-review) on the App Store.
-- You can send a feedback on TestFlight with an attached screenshot or not.
+- You can send a feedback on TestFlight with an attached screenshot or not. It is recommended to also share your email address with your TestFlight feedback, but not required.
 - Send a message in [#cider-chat](https://discord.com/channels/843954443845238864/1254248941780729898) on the [Cider Discord](https://discord.gg/applemusic) server
 - You can [create an issue](https://github.com/ciderapp/Cider-Remote/issues/new) on GitHub.
-- If the beta app crashes, TestFlight will recommend you to send a feedback.
+- If the beta app crashes, TestFlight will recommend you to send a feedback with the crash info.
 
 # Connection Guide
 
@@ -98,11 +98,11 @@ By following these steps, you should be able to set up and use Cider Remote with
 # Beta of Cider Remote
 
 > [!IMPORTANT]
-> Cider Remote's beta allows users to test new features before they release on the App Store, be careful though, bugs may occur more often in beta than in the [App Store](https://apps.apple.com/app/id6670149407) version
+> Cider Remote's beta allows users to test new features before they release on the App Store, be careful though, bugs may occur more often in beta than in the [App Store](https://apps.apple.com/app/id6670149407) version. Make sure to [report bugs through support](#feedback).
 
 Join the [TestFlight beta](https://testflight.apple.com/join/qTeV2T2w) here.
 
 # License & Copyright
 This project is licensed under the Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) license. See the [LICENSE](./LICENSE) file for details.
 
-*© Cider Collective 2024-2025*
+© Cider Collective 2024-2025
