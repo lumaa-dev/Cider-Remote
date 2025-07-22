@@ -292,7 +292,7 @@ struct Changelog: Hashable, Identifiable {
 extension Changelog {
     /// Remote 3.1.0
     static var v310: Changelog {
-        var temp = Changelog(version: "3.1.0", authors: ["Lumaa"], commits: nil)
+        var temp = Changelog(version: "3.1.0", authors: ["Lumaa"], commits: "7b5dd1...main")
         temp = temp
             .setChanges(additions: [
                 "iOS 26 support",
@@ -325,7 +325,7 @@ extension Changelog {
 
     /// Remote 3.0.3
     static var v303: Changelog {
-        var temp = Changelog(version: "3.0.3", authors: ["Lumaa"], commits: nil)
+        var temp = Changelog(version: "3.0.3", authors: ["Lumaa"], commits: "bf16446...7b5dd1")
         temp = temp
             .setChanges(additions: [
                 "Library Browser!",
