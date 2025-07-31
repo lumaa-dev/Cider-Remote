@@ -13,6 +13,14 @@ struct ContentView: View {
     @State private var showingSettings = false
     @StateObject private var prompt: AppPrompt = .shared
 
+    private var isGlass: Bool {
+        if #available(iOS 26.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     var body: some View {
         ZStack {
             NavigationStack {
@@ -29,7 +37,7 @@ struct ContentView: View {
             }
             .tint(Color.cider)
 
-            if #unavailable(iOS 26.0) {
+            if !isGlass {
                 if AppPrompt.shared.showingPrompt == .newDevice {
                     FriendlyNamePromptView()
                 }
@@ -47,7 +55,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
-        .sheet(item: $prompt.showingPrompt) { prompt in
+        .conditionalSheet(item: $prompt.showingPrompt, condition: isGlass) { prompt in
             ZStack {
                 switch prompt {
                     case .accesCamera:
