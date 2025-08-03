@@ -43,6 +43,7 @@ struct LibraryTrack: Identifiable, Hashable {
         let attributes: [String: Any] = data["attributes"] as! [String: Any]
         let artwork: [String: Any] = attributes["artwork"] as! [String: Any]
         let playParams: [String: Any]? = attributes["playParams"] as? [String: Any]
+    
         self.album = album
 
         self.id = data["id"] as! String
@@ -53,7 +54,7 @@ struct LibraryTrack: Identifiable, Hashable {
         self.trackNumber = attributes["trackNumber"] as! Int
 
         if let playParams {
-            self.catalogId = playParams["catalogId"] as! String
+            self.catalogId = (playParams["catalogId"] as? String) ?? "[LOCAL]"
         } else {
             self.catalogId = "[UNKNOWN]"
         }
