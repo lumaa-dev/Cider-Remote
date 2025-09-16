@@ -19,9 +19,7 @@
 - Apple Music & MusixMatch Lyrics (+ Immersive Lyrics in Horizontal Layout)
 - Siri Shortcuts actions ([App Intents](https://developer.apple.com/documentation/appintents))
 - Control Center actions ([WidgetKit](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system#Add-a-control-toggle-to-your-app), iOS 18+)
-- Liquid Glass design* (iOS 26+)
-
-*\* Coming later this fall, with iOS 26 and iPadOS 26, available in Beta*
+- Liquid Glass design (iOS 26+)
 
 # Feedback
 
@@ -98,7 +96,7 @@ By following these steps, you should be able to set up and use Cider Remote with
 # Beta of Cider Remote
 
 > [!IMPORTANT]
-> Cider Remote's beta allows users to test new features before they release on the App Store, be careful though, bugs may occur more often in beta than in the [App Store](https://apps.apple.com/app/id6670149407) version. Make sure to [report bugs through support](#feedback).
+> Cider Remote's beta allows users to test new features before they release on the App Store, which might use capabilities that will be available in iOS Beta versions, be careful though, bugs may occur more often in beta than in the [App Store](https://apps.apple.com/app/id6670149407) version. Make sure to report bugs and issues through [a feedback](#feedback).
 
 Join the [TestFlight beta](https://testflight.apple.com/join/qTeV2T2w) here.
 
