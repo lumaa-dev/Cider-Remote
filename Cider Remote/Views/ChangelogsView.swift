@@ -321,7 +321,7 @@ extension Changelog {
                 "All iOS 16 devices are now unsupported by Cider Remote due to the limitations of Swift",
                 "\"Auto-refresh\" setting, force enabled now"
             ])
-        return temp.setNotes(headerNote: "Cider Remote goes through its Liquid Glass revolution thanks to iOS 26", footerNote: "This update will be available on the App Store only in September 2025")
+        return temp.setNotes(headerNote: "Cider Remote goes through its Liquid Glass revolution thanks to iOS 26")
     }
 
     /// Remote 3.0.3
