@@ -26,23 +26,11 @@ struct ContributorsView: View {
                     }
                 }
             } else if !fetchingData && fetchedContribs.count <= 0 {
-                if #available(iOS 17.0, *) {
-                    ContentUnavailableView(
-                        "Couldn't find any contributors",
-                        systemImage: "person.crop.circle.badge.xmark",
-                        description: Text("Maybe try checking your internet connection or GitHub's status...")
-                    )
-                } else {
-                    VStack {
-                        Text("Couldn't find any contributors")
-                            .font(.title.bold())
-
-                        Text("Maybe try checking your internet connection or GitHub's status...")
-                            .font(.caption)
-                            .foregroundStyle(Color.gray)
-                    }
-                    .padding(.vertical)
-                }
+                ContentUnavailableView(
+                    "Couldn't find any contributors",
+                    systemImage: "person.crop.circle.badge.xmark",
+                    description: Text("Maybe try checking your internet connection or GitHub's status...")
+                )
             } else if fetchingData {
                 ProgressView()
                     .progressViewStyle(.circular)
