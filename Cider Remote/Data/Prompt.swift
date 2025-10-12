@@ -100,6 +100,7 @@ enum Prompts: String, Identifiable {
     case newDevice
     case accesCamera
     case oldDevice
+    case update
 
     var id: String {
         self.rawValue
